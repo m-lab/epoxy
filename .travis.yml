@@ -10,7 +10,7 @@ script:
 - go test -v ./...
 - cd cmd/epoxy_boot_server && go build
 deploy:
-  verbosity: info
+  verbosity: debug
   config: cmd/epoxy_boot_server/app.yaml
   provider: gae
   keyfile: mlab-sandbox-appengine-deploy.json

@@ -6,9 +6,9 @@ before_install:
 # install:
 # - go get -t ./...
 #   # - go get google.golang.org/appengine/cmd/aedeploy
-# script:
-# - go test -v ./...
-# - cd cmd/epoxy_boot_server && go build && ls
+script:
+- go test -v ./...
+- cd cmd/epoxy_boot_server && go build && ls
 deploy:
   verbosity: debug
   config: cmd/epoxy_boot_server/app.yaml

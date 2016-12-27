@@ -1,7 +1,7 @@
 language: go
 before_install:
 - openssl aes-256-cbc -K $encrypted_9ca81b5594f5_key -iv $encrypted_9ca81b5594f5_iv
-  -in .mlab-sandbox-appengine-deploy.json.enc -out mlab-sandbox-appengine-deploy.json
+  -in .mlab-sandbox-appengine-deploy.json.enc -out /tmp/mlab-sandbox-appengine-deploy.json
   -d
 # install:
 # - go get -t ./...
@@ -13,5 +13,5 @@ deploy:
   verbosity: debug
   config: cmd/epoxy_boot_server/app.yaml
   provider: gae
-  keyfile: mlab-sandbox-appengine-deploy.json
+  keyfile: /tmp/mlab-sandbox-appengine-deploy.json
   project: mlab-sandbox

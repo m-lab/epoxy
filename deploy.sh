@@ -8,3 +8,5 @@ gcloud auth activate-service-account --key-file /tmp/mlab-sandbox-appengine-depl
 pushd cmd/epoxy_boot_server
   gcloud --verbosity debug --project mlab-sandbox --quiet app deploy --promote app.yaml
 popd
+
+exit 0

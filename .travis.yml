@@ -9,9 +9,14 @@ before_install:
 script:
 - go test -v ./...
 - cd cmd/epoxy_boot_server && go build && ls
+
 deploy:
-  verbosity: debug
-  config: cmd/epoxy_boot_server/app.yaml
-  provider: gae
-  keyfile: /tmp/mlab-sandbox-appengine-deploy.json
-  project: mlab-sandbox
+  provider: script
+  script: deploy.sh
+
+#deploy:
+#  verbosity: debug
+#  config: cmd/epoxy_boot_server/app.yaml
+#  provider: gae
+#  keyfile: /tmp/mlab-sandbox-appengine-deploy.json
+#  project: mlab-sandbox

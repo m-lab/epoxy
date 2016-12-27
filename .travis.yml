@@ -11,6 +11,7 @@ before_install:
 # - gcloud config set project continuous-deployment-python
 # - gcloud -q components update gae-python
 install:
+ - go get -t ./...
  - go get google.golang.org/appengine/cmd/aedeploy
 # Deploy your app by appending a gcloud app deploy command to aedeploy, like this:
 #

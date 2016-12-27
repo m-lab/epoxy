@@ -1,2 +1,24 @@
 language: go
 
+before_install:
+ - openssl aes-256-cbc -K $encrypted_9ca81b5594f5_key -iv $encrypted_9ca81b5594f5_iv
+  -in .mlab-sandbox-appengine-deploy.json.enc -out mlab-sandbox-appengine-deploy.json
+  -d
+
+# - gcloud auth activate-service-account --key-file client-secret.json
+# install:
+# # Set the correct project to deploy to
+# - gcloud config set project continuous-deployment-python
+# - gcloud -q components update gae-python
+
+script:
+# # Run the unit tests
+# # [START deploy]
+# # Deploy the app
+# - gcloud -q preview app deploy app.yaml --promote
+
+deploy:
+  config: cmd/epoxy_boot_server/app.yml
+  provider: gae
+  keyfile: mlab-sandbox-appengine-deploy.json
+  project: mlab-sandbox

@@ -10,12 +10,18 @@ before_install:
 # # Set the correct project to deploy to
 # - gcloud config set project continuous-deployment-python
 # - gcloud -q components update gae-python
+install:
+ - go get google.golang.org/appengine/cmd/aedeploy
+# Deploy your app by appending a gcloud app deploy command to aedeploy, like this:
+#
+# aedeploy gcloud app deploy
 
-script:
+# script:
 # # Run the unit tests
 # # [START deploy]
 # # Deploy the app
 # - gcloud -q preview app deploy app.yaml --promote
+# - $TRAVIS_BUILD_DIR/bin/aedeploy gcloud app deploy
 
 deploy:
   config: cmd/epoxy_boot_server/app.yaml

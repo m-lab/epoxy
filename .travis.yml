@@ -18,7 +18,7 @@ script:
 # - gcloud -q preview app deploy app.yaml --promote
 
 deploy:
-  config: cmd/epoxy_boot_server/app.yml
+  config: cmd/epoxy_boot_server/app.yaml
   provider: gae
   keyfile: mlab-sandbox-appengine-deploy.json
   project: mlab-sandbox

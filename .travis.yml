@@ -3,12 +3,12 @@ before_install:
 - openssl aes-256-cbc -K $encrypted_9ca81b5594f5_key -iv $encrypted_9ca81b5594f5_iv
   -in .mlab-sandbox-appengine-deploy.json.enc -out mlab-sandbox-appengine-deploy.json
   -d
-install:
-- go get -t ./...
-- go get google.golang.org/appengine/cmd/aedeploy
-script:
-- go test -v ./...
-- cd cmd/epoxy_boot_server && go build
+# install:
+# - go get -t ./...
+#   # - go get google.golang.org/appengine/cmd/aedeploy
+# script:
+# - go test -v ./...
+# - cd cmd/epoxy_boot_server && go build && ls
 deploy:
   verbosity: debug
   config: cmd/epoxy_boot_server/app.yaml

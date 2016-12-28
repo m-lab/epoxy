@@ -3,13 +3,16 @@
 set -x
 set -e
 
-env
-pwd
+PROJECT=${1:?Please provide the project}
+KEYFILE=${2:?Please provide the service account key file}
+BASEDIR=${3:?Please provide the base directory containing app.yaml}
 
-gcloud auth activate-service-account --key-file /tmp/mlab-sandbox-appengine-deploy.json
+gcloud auth activate-service-account --key-file "${KEYFILE}"
 
-pushd $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
-  gcloud --verbosity debug --project mlab-sandbox --quiet app deploy --promote app.yaml
+pushd "${BASEDIR}"
+  # --quiet suppresses prompts for user input.
+  gcloud --quiet --verbosity debug --project "${PROJECT}" \
+      app deploy --promote app.yaml
 popd
 
 exit 0

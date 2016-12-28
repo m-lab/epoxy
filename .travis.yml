@@ -18,25 +18,25 @@ script:
 
 # NB: travis provides "gae" provider, however it does not work here (unknown).
 # Deploy steps never trigger on a new Pull Request. Deploy steps will trigger
-# after a merge.
+# after a merge with matching "on:" conditions.
 deploy:
+  # TODO(soltesz): complete a production AppEngine deployment target.
   # PRODUCTION: after code review and after QA tests on staging have passed.
   - provider: script
-    script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-oti
-      /tmp/service-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
+    script: /bin/true
     skip_cleanup: true
     on:
       repo: m-lab/epoxy
       branch: master
 
+  # TODO(soltesz): complete a staging AppEngine deployment target.
   # STAGING: after code review and before QA testing.
   - provider: script
-    script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-staging
-      /tmp/service-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
+    script: /bin/true
     skip_cleanup: true
     on:
       repo: m-lab/epoxy
-      branch: staging
+      branch: dev
 
   # SANDBOX: before code review for development code in a specific branch.
   - provider: script

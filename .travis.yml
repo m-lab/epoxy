@@ -12,12 +12,23 @@ script:
 - go test -v ./...
 - cd $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server && go build && ls
 - $TRAVIS_BUILD_DIR/travis/install_gcloud.sh
-# Travis provides the "gae" deploy provider, however it does not work here.
+# Deploy steps are always skipped for Pull Requests.
+# Travis provides the "gae" provider, however it does not work here.
 deploy:
-  provider: script
-  script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-sandbox
-    /tmp/service-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
-  skip_cleanup: true
+  - provider: script
+    script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-staging
+      /tmp/service-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
+    skip_cleanup: true
+    on:
+      repo: m-lab/epoxy
+      branch: master
+  - provider: script
+    script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-sandbox
+      /tmp/service-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
+    skip_cleanup: true
+    on:
+      repo: stephen-soltesz/epoxy-1
+      branch: master
 #deploy:
 #  verbosity: debug
 #  config: $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server/app.yaml

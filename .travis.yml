@@ -1,37 +1,47 @@
 language: go
+
 before_install:
 - openssl aes-256-cbc -d
   -K $encrypted_9ca81b5594f5_key
   -iv $encrypted_9ca81b5594f5_iv
   -in $TRAVIS_BUILD_DIR/travis/mlab-sandbox-appengine-deploy.json.enc
   -out /tmp/service-account.json
+
 cache:
   directories:
     - "$HOME/google-cloud-sdk/"
+
 script:
 - go test -v ./...
 - cd $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server && go build && ls
 - $TRAVIS_BUILD_DIR/travis/install_gcloud.sh
-# Deploy steps are always skipped for Pull Requests.
-# Travis provides the "gae" provider, however it does not work here.
+
+# NB: travis provides "gae" provider, however it does not work here (unknown).
+# Deploy steps never trigger on a new Pull Request. Deploy steps will trigger
+# after a merge.
 deploy:
+  # PRODUCTION: after code review and after QA tests on staging have passed.
+  - provider: script
+    script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-oti
+      /tmp/service-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
+    skip_cleanup: true
+    on:
+      repo: m-lab/epoxy
+      branch: master
+
+  # STAGING: after code review and before QA testing.
   - provider: script
     script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-staging
       /tmp/service-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
     skip_cleanup: true
     on:
       repo: m-lab/epoxy
-      branch: master
+      branch: staging
+
+  # SANDBOX: before code review for development code in a specific branch.
   - provider: script
     script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-sandbox
       /tmp/service-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
     skip_cleanup: true
     on:
-      repo: stephen-soltesz/epoxy-1
-      branch: master
-#deploy:
-#  verbosity: debug
-#  config: $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server/app.yaml
-#  provider: gae
-#  keyfile: /tmp/service-account.json
-#  project: mlab-sandbox
+      branch: sandbox

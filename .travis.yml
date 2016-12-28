@@ -3,21 +3,20 @@ before_install:
 - openssl aes-256-cbc -d
   -K $encrypted_9ca81b5594f5_key
   -iv $encrypted_9ca81b5594f5_iv
-  -in .mlab-sandbox-appengine-deploy.json.enc
+  -in $TRAVIS_BUILD_DIR/travis/mlab-sandbox-appengine-deploy.json.enc
   -out /tmp/service-account.json
 cache:
   directories:
     - "$HOME/google-cloud-sdk/"
 script:
 - go test -v ./...
-- cd cmd/epoxy_boot_server && go build && ls
-- install_gcloud.sh
-
+- cd $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server && go build && ls
+- $TRAVIS_BUILD_DIR/travis/install_gcloud.sh
 # Travis provides the "gae" deploy provider, however it does not work here.
 deploy:
   provider: script
-  script: $TRAVIS_BUILD_DIR/deploy_app.sh mlab-sandbox /tmp/service-account.json
-    $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
+  script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-sandbox
+    /tmp/service-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
   skip_cleanup: true
 #deploy:
 #  verbosity: debug

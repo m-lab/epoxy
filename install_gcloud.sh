@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -e
+set -x
+
 if [[ ! -d "${HOME}/google-cloud-sdk/bin" ]]; then
   rm -rf "${HOME}/google-cloud-sdk"
 
@@ -9,5 +12,5 @@ if [[ ! -d "${HOME}/google-cloud-sdk/bin" ]]; then
 fi
 
 # Verify installation succeeded.
-source /home/travis/google-cloud-sdk/path.bash.inc
+source "${HOME}/google-cloud-sdk/path.bash.inc"
 gcloud version

@@ -3,13 +3,13 @@ language: go
 before_install:
 # Encrypted values are not defined in forks or pull requests.
 - if [[ -n "$encrypted_2ac64e4220d5_iv" ]] ; then
-  openssl aes-256-cbc -d
-  -K $encrypted_2ac64e4220d5_key
-  -iv $encrypted_2ac64e4220d5_iv
-  -in $TRAVIS_BUILD_DIR/travis/service-accounts.tar.enc
-  -out /tmp/service-accounts.tar ; fi
-- if [[ -n "$encrypted_2ac64e4220d5_iv" ]] ; then
-  tar -C /tmp -xvf /tmp/service-accounts.tar ; fi
+    openssl aes-256-cbc -d
+      -K $encrypted_2ac64e4220d5_key
+      -iv $encrypted_2ac64e4220d5_iv
+      -in $TRAVIS_BUILD_DIR/travis/service-accounts.tar.enc
+      -out /tmp/service-accounts.tar ;
+    tar -C /tmp -xvf /tmp/service-accounts.tar ;
+  fi
 
 cache:
   directories:
@@ -50,6 +50,8 @@ deploy:
       $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
     skip_cleanup: true
     on:
-      repo: m-lab/epoxy
+      # Consider all branches and match using the condition. By default
+      # "all_branches" is false, and the condition is ignored.
+      all_branches: true
       # A bash-style 'if' condition, matching branches with a "sandbox-" prefix.
       condition: $TRAVIS_BRANCH == sandbox-*

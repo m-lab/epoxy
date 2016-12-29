@@ -2,16 +2,11 @@ language: go
 
 before_install:
 - openssl aes-256-cbc -d
-  -K $encrypted_9ca81b5594f5_key
-  -iv $encrypted_9ca81b5594f5_iv
-  -in $TRAVIS_BUILD_DIR/travis/mlab-sandbox-service-account.json.enc
-  -out /tmp/sandbox-account.json
-- openssl aes-256-cbc -d
-  -K $encrypted_9ca81b5594f5_key
-  -iv $encrypted_9ca81b5594f5_iv
-  -in $TRAVIS_BUILD_DIR/travis/mlab-staging-service-account.json.enc
-  -out /tmp/staging-account.json
-
+  -K $encrypted_2ac64e4220d5_key
+  -iv $encrypted_2ac64e4220d5_iv
+  -in service-accounts.tar.enc
+  -out /tmp/service-accounts.tar
+- tar -C /tmp -xvf /tmp/service-accounts.tar
 
 cache:
   directories:
@@ -38,7 +33,8 @@ deploy:
   # STAGING: after code review and before QA testing.
   - provider: script
     script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-staging
-      /tmp/staging-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
+      /tmp/mlab-staging-service-account.json
+      $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
     skip_cleanup: true
     on:
       repo: m-lab/epoxy
@@ -47,7 +43,9 @@ deploy:
   # SANDBOX: before code review for development code in a specific branch.
   - provider: script
     script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-sandbox
-      /tmp/sandbox-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
+      /tmp/mlab-sandbox-service-account.json
+      $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
     skip_cleanup: true
     on:
-      branch: sandbox
+      repo: stephen-soltesz/epoxy-1
+      branch: master

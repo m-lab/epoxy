@@ -16,7 +16,7 @@ script:
 - cd $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server && go build && ls
 - $TRAVIS_BUILD_DIR/travis/install_gcloud.sh
 
-# NB: travis provides "gae" provider, however it does not work here (unknown).
+# NB: travis has a "gae" provider, however it does not work here (unknown).
 # Deploy steps never trigger on a new Pull Request. Deploy steps will trigger
 # after a merge with matching "on:" conditions.
 deploy:

@@ -5,7 +5,13 @@ before_install:
   -K $encrypted_9ca81b5594f5_key
   -iv $encrypted_9ca81b5594f5_iv
   -in $TRAVIS_BUILD_DIR/travis/mlab-sandbox-service-account.json.enc
-  -out /tmp/service-account.json
+  -out /tmp/sandbox-account.json
+- openssl aes-256-cbc -d
+  -K $encrypted_9ca81b5594f5_key
+  -iv $encrypted_9ca81b5594f5_iv
+  -in $TRAVIS_BUILD_DIR/travis/mlab-staging-service-account.json.enc
+  -out /tmp/staging-account.json
+
 
 cache:
   directories:
@@ -29,10 +35,10 @@ deploy:
       repo: m-lab/epoxy
       branch: master
 
-  # TODO(soltesz): complete a staging AppEngine deployment target.
   # STAGING: after code review and before QA testing.
   - provider: script
-    script: /bin/true
+    script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-staging
+      /tmp/staging-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
     skip_cleanup: true
     on:
       repo: m-lab/epoxy
@@ -41,7 +47,7 @@ deploy:
   # SANDBOX: before code review for development code in a specific branch.
   - provider: script
     script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-sandbox
-      /tmp/service-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
+      /tmp/sandbox-account.json $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
     skip_cleanup: true
     on:
       branch: sandbox

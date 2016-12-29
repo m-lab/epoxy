@@ -4,7 +4,7 @@ before_install:
 - openssl aes-256-cbc -d
   -K $encrypted_9ca81b5594f5_key
   -iv $encrypted_9ca81b5594f5_iv
-  -in $TRAVIS_BUILD_DIR/travis/mlab-sandbox-appengine-deploy.json.enc
+  -in $TRAVIS_BUILD_DIR/travis/mlab-sandbox-service-account.json.enc
   -out /tmp/service-account.json
 
 cache:

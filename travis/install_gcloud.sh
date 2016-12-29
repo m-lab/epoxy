@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# Installs the Google Cloud SDK.
 
 set -e
 set -x

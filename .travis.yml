@@ -1,0 +1,69 @@
+# Travis configuration for ePoxy.
+#
+# ePoxy is a Go project supporting release automation to M-Lab GCP projects for
+# branches in the m-lab/epoxy repository. To achieve this, the build takes the
+# following steps:
+#
+#  * decrypt service account credentials
+#  * install the Google Cloud SDK command line tools (gcloud)
+#  * cache the gcloud installation and setup
+#  * test and build the go code
+#  * on success, deploy the result when the origin branch matches a supported
+#    deployment target.
+#
+language: go
+
+before_install:
+# NB: Encrypted values are not defined in forks or pull requests.
+# Decrypt the tar archive containing the GCP service account key files.
+- if [[ -n "$encrypted_2ac64e4220d5_iv" ]] ; then
+  openssl aes-256-cbc -d
+  -K $encrypted_2ac64e4220d5_key
+  -iv $encrypted_2ac64e4220d5_iv
+  -in $TRAVIS_BUILD_DIR/travis/service-accounts.tar.enc
+  -out /tmp/service-accounts.tar ; fi
+# After unpacking, there should be one service account key file for every GCP
+# project referenced in the "deploy" section. These keys authenticate the
+# gcloud deploy operations.
+- if [[ -n "$encrypted_2ac64e4220d5_iv" ]] ; then
+  tar -C /tmp -xvf /tmp/service-accounts.tar ; fi
+
+# These directories will be cached on successful "script" builds, and restored,
+# if available, to save time on future builds.
+cache:
+  directories:
+    - "$HOME/google-cloud-sdk/"
+
+script:
+- go test -v ./...
+- cd $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server && go build
+- $TRAVIS_BUILD_DIR/travis/install_gcloud.sh
+
+# NB: Travis has a Google AppEngine (gae) provider, however it does not work
+# here (unknown).
+# Deploy steps never trigger on a new Pull Request. Deploy steps will trigger
+# after a merge with matching "on:" conditions.
+deploy:
+# SANDBOX: before code review for development code in a specific branch.
+- provider: script
+  script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-sandbox
+    /tmp/mlab-sandbox-service-account.json
+    $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
+  skip_cleanup: true
+  on:
+    repo: m-lab/epoxy
+    # A bash-style 'if' condition, matching branches with a "sandbox-" prefix.
+    condition: $TRAVIS_BRANCH == sandbox-*
+
+# STAGING: after code review and before QA testing.
+- provider: script
+  script: $TRAVIS_BUILD_DIR/travis/deploy_app.sh mlab-staging
+    /tmp/mlab-staging-service-account.json
+    $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server
+  skip_cleanup: true
+  on:
+    repo: m-lab/epoxy
+    branch: dev
+
+# TODO(soltesz): complete a production AppEngine deployment target.
+# PRODUCTION: after code review and after QA tests on staging have passed.

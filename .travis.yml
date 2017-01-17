@@ -28,8 +28,8 @@ before_install:
 - if [[ -n "$encrypted_2ac64e4220d5_iv" ]] ; then
   tar -C /tmp -xvf /tmp/service-accounts.tar ; fi
 
-# NB: The cache is created (if needed) after the "script" build completes, and
-# restored (if available) before the "script" build starts.
+# These directories will be cached on successful "script" builds, and restored,
+# if available, to save time on future builds.
 cache:
   directories:
     - "$HOME/google-cloud-sdk/"

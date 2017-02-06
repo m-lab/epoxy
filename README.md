@@ -11,12 +11,18 @@ To build the ePoxy boot server:
 
 ## Testing Server
 
-Start the datastore emulator:
+The datastore emulator depends on the [Google Cloud
+SDK](https://cloud.google.com/sdk/downloads). After installing `gcloud`,
+install the datastore emulator component:
+
+    gcloud components install cloud-datastore-emulator
+
+Next, start the datastore emulator:
 
     gcloud beta emulators datastore start
 
-Look for the `DATASTORE_EMULATOR_HOST` reported on stdout. This should be set
-for all subsequent commands.
+Look for the `DATASTORE_EMULATOR_HOST` reported on stdout. This environment
+variable should be set for all subsequent commands.
 
 Add a sample Host record to the Datastore emulator:
 

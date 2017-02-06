@@ -34,34 +34,68 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"cloud.google.com/go/datastore"
 	"github.com/gorilla/mux"
+	"github.com/m-lab/epoxy/handler"
+	"github.com/m-lab/epoxy/storage"
+	"golang.org/x/net/context"
 )
 
 var (
-	bindAddress = flag.String("hostname", "", "Listen for connections on this interface.")
-	bindPort    = flag.Int("port", 8080, "Accept connections on this port.")
+	// Environment variables are preferred to flags for deployments in
+	// AppEngine. And, using environment variables is encouraged for
+	// twelve-factor apps -- https://12factor.net/config
+
+	// projectID must be set using the GCLOUD_PROJECT environment variable.
+	projectID = os.Getenv("GCLOUD_PROJECT")
+
+	// publicAddr must be set if *not* running in AppEngine. When running in
+	// AppEngine publicAddr is set automatically from a combination of
+	// GCLOUD_PROJECT and GAE_SERVICE environment variables. When not running in
+	// AppEngine, or to override the default in AppEngine, the PUBLIC_ADDRESS
+	// environment variable must be set instead.
+	publicAddr = os.Getenv("PUBLIC_ADDRESS")
+
+	// bindAddress may be set using the LISTEN environment variable. By default, ePoxy
+	// listens on all available interfaces.
+	bindAddress = os.Getenv("LISTEN")
+
+	// bindPort may be set using the PORT environment variable.
+	bindPort = "8080"
 )
 
-// addRoute adds a new handler function for a pattern-based URL target to a Gorilla mux.Router.
-func addRoute(router *mux.Router, method, pattern string, handler http.HandlerFunc) {
-	router.Methods(method).Path(pattern).Handler(http.Handler(handler))
+// init checks the environment for configuration values.
+func init() {
+	// Only use the automatic public address if PUBLIC_ADDRESS is not already set.
+	if service := os.Getenv("GAE_SERVICE"); service != "" && projectID != "" && publicAddr == "" {
+		publicAddr = fmt.Sprintf("%s-dot-%s.appspot.com", service, projectID)
+	}
+	if port := os.Getenv("PORT"); port != "" {
+		bindPort = port
+	}
+}
+
+// addRoute adds a new handler for a pattern-based URL target to a Gorilla mux.Router.
+func addRoute(router *mux.Router, method, pattern string, handler http.Handler) {
+	router.Methods(method).Path(pattern).Handler(handler)
 }
 
 // newRouter creates and initializes all routes for the ePoxy boot server.
-func newRouter() *mux.Router {
+func newRouter(env *handler.Env) *mux.Router {
 	router := mux.NewRouter()
 
 	// A health checker for running in Docker or AppEngine.
-	addRoute(router, "GET", "/_ah/health", checkHealth)
+	addRoute(router, "GET", "/_ah/health", http.HandlerFunc(checkHealth))
 
 	// Stage2 scripts are always the first script fetched by a booting machine.
 	// "stage2.ipxe" is the target for ROM-based iPXE clients.
-	addRoute(router, "POST", "/v1/boot/{hostname}/stage2.ipxe", generateStage2IPXE)
+	addRoute(router, "POST", "/v1/boot/{hostname}/stage2.ipxe",
+		handler.Handler{env, handler.GenerateStage2IPXE})
 
 	// TODO(soltesz): add a target for CD-based ePoxy clients.
 	// addRoute(router, "POST", "/v1/boot/{hostname}/stage2.json", generateStage2Json)
@@ -84,37 +118,21 @@ func checkHealth(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(rw, "ok")
 }
 
-// ipxeScriptTmpl contains the simplest iPXE script possible that simply runs
-// the interactive iPXE shell and waits. This is a temporary stand-in for a
-// script that will be generated at request time for a specific host. General
-// documentation for ipxe scripts: http://ipxe.org/scripting
-// TODO(soltesz): replace with a generic template.
-const ipxeScriptTmpl = `#!ipxe
-echo Booting %s
-shell
-`
-
-// generateStage2IPXE creates the stage2 iPXE script for booting machines.
-func generateStage2IPXE(rw http.ResponseWriter, req *http.Request) {
-	hostname := mux.Vars(req)["hostname"]
-
-	// TODO(soltesz):
-	// * Use hostname as key to load record from Datastore.
-	// * Verify that the source IP maches the host IP.
-	// * Save information sent in PostForm.
-	// * Generate new session IDs.
-	// * Save host record to Datastore.
-	// * Generate and send iPXE script with session IDs and the nextstage script from Datastore.
-	rw.Header().Set("Content-Type", "text/plain; charset=us-ascii")
-	rw.WriteHeader(http.StatusOK)
-	_, err := fmt.Fprintf(rw, ipxeScriptTmpl, hostname)
-	if err != nil {
-		log.Printf("can't write response to %q: %v", hostname, err)
-	}
-}
-
 func main() {
+	if projectID == "" {
+		log.Fatalf("Environment variable GCLOUD_PROJECT must specify a project ID for Datastore.")
+	}
+	if publicAddr == "" {
+		log.Fatalf("Environment variable PUBLIC_ADDRESS must specify a public service name.")
+	}
+
 	// TODO(soltesz): support TLS natively for stand-alone mode. Though, this is not necessary for AppEngine.
-	addr := fmt.Sprintf("%s:%d", *bindAddress, *bindPort)
-	http.ListenAndServe(addr, newRouter())
+	addr := fmt.Sprintf("%s:%s", bindAddress, bindPort)
+	ctx := context.Background()
+	client, err := datastore.NewClient(ctx, projectID)
+	if err != nil {
+		log.Fatalf("Failed to create new datastore client: %s", err)
+	}
+	env := &handler.Env{storage.NewDatastoreConfig(client), publicAddr}
+	http.ListenAndServe(addr, newRouter(env))
 }

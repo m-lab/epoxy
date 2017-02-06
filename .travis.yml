@@ -52,6 +52,9 @@ deploy:
   skip_cleanup: true
   on:
     repo: m-lab/epoxy
+    # Consider all branches and match using the condition. By default
+    # "all_branches" is false, and the condition is ignored.
+    all_branches: true
     # A bash-style 'if' condition, matching branches with a "sandbox-" prefix.
     condition: $TRAVIS_BRANCH == sandbox-*
 

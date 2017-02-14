@@ -35,6 +35,7 @@ cache:
     - "$HOME/google-cloud-sdk/"
 
 script:
+- bash -c "env"
 - go test -v ./...
 - cd $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server && go build
 - $TRAVIS_BUILD_DIR/travis/install_gcloud.sh

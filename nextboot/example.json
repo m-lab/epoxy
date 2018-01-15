@@ -1,0 +1,47 @@
+{
+   "v1" : {
+      "files" : {
+         "vmlinuz" : {
+            "sha256" : "54366048565845524e86b7834dde2126bda4d45fe180fa0a6e48569dca124dda",
+            "url" : "https://storage.googleapis.com/epoxy-mlab-sandbox/coreos-generic/coreos_production_pxe.vmlinuz"
+         },
+         "initram" : {
+            "url" : "https://storage.googleapis.com/epoxy-mlab-sandbox/coreos-generic/coreos_custom_pxe_image.cpio.gz",
+            "sha256" : "37c0e81be3a24752fcc2bc51c20e8dae897417dfaabbdce3a8b1efc8a2d310c6"
+         }
+      },
+      "kargs" : {
+         "epoxy.stage3" : "https://boot-api-mlab-staging.appspot.com/v1/boot/mlab1.foo01.measurement-lab.org/stage3?session=67890",
+         "epoxy.stage2" : "https://boot-api-mlab-staging.appspot.com/v1/boot/mlab1.foo01.measurement-lab.org/stage2?session=12345",
+         "epoxy.report" : "https://boot-api-mlab-staging.appspot.com/v1/boot/mlab1.foo01.measurement-lab.org/report?session=abcde",
+         "ide-core.nodma" : "test1",
+         "epoxy.net_hostname" : "mlab1.foo01.measurement-lab.org",
+         "epoxy.net_ipv4" : "192.168.0.2/24,192.168.0.1,8.8.8.8,8.8.4.4",
+         "epoxy.net_interface" : "eth0"
+      },
+      "commands" : [
+         "# Run kexec using the downloaded initram and vmlinuz files. We reconstruct the command line to remove unused flags",
+         "/sbin/kexec --force --command-line='{{.vars.newkargs}} {{.vars.cmdline}}' --initrd {{.files.initram.name}} {{.files.vmlinuz.name}}",
+         [
+            "/sbin/kexec",
+            "--force",
+            "--command-line={{kargs `ide-core.nodma`}} {{.vars.newkargs}} {{.vars.cmdline}}",
+            "--initrd",
+            "{{.files.initram.name}}",
+            "{{.files.vmlinuz.name}}"
+         ]
+      ],
+      "env" : {
+         "PATH" : "/bin:/usr/bin:/usr/local/bin"
+      },
+      "vars" : {
+         "newkargs" : [
+            "{{kargs `epoxy.net_hostname`}}",
+            "{{kargs `epoxy.net_interface`}}",
+            "{{kargs `epoxy.net_ipv4`}}"
+         ],
+         "cmdline" : "net.ifnames=0 coreos.autologin=tty1"
+      },
+      "chain" : "https://storage.googleapis.com/epoxy-mlab-sandbox/foo.json"
+   }
+}

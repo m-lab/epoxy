@@ -2,7 +2,7 @@ package nextboot
 
 // Config contains a nextboot configuration for an ePoxy client.
 type Config struct {
-	V1 V1 `json:"v1,omitempty"`
+	V1 *V1 `json:"v1,omitempty"`
 }
 
 // V1 specifies an action for an ePoxy client to execute. V1 configurations

@@ -130,9 +130,10 @@ type V1 struct {
 	// Formatting:
 	//
 	// Commands are ignored when the first character is '#'. This may be helpful
-	// for adding in-line comments to JSON files. Shell-style quotation is
-	// supported for command arguments. So, the following would be split into
-	// three elements:
+	// for adding in-line comments to JSON files.
+	//
+	// Shell-style quotation is supported for command arguments. So, the
+	// following would be split into three elements:
 	//
 	//   /bin/argv0 --command="argv1 with spaces" argv2
 	//

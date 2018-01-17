@@ -12,6 +12,7 @@
 #    deployment target.
 #
 language: go
+go_import_path: github.com/m-lab/epoxy
 
 before_install:
 # NB: Encrypted values are not defined in forks or pull requests.

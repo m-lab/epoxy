@@ -2,6 +2,19 @@ package nextboot
 
 // Config contains a nextboot configuration for an ePoxy client.
 type Config struct {
+	// Kargs contains kernel command line parameters, typically read from
+	// /proc/cmdline. Kernel parameters are split on the first `=`, taking the
+	// left hand side as the Kargs key, and the right hand side as the value.
+	// If there is no `=` in the parameter, the entire parameter becomes the
+	// key with an empty value. All keys and values are strings.
+	//
+	// For example, if there were a parameter `ide-core.nodma=0.1`, then Kargs
+	// will contain a key `ide-core.nodma` with a value of `0.1`. Kargs may be
+	// referenced in templates using the `kargs` template function. See more
+	// examples below.
+	Kargs map[string]string `json:"kargs,omitempty"`
+
+	// V1 action.
 	V1 *V1 `json:"v1,omitempty"`
 }
 
@@ -33,18 +46,6 @@ type V1 struct {
 	// that configuration may contain a new Chain URL, but should typically
 	// refer to a config with Commands.
 	Chain string `json:"chain,omitempty"`
-
-	// Kargs contains kernel command line parameters, typically read from
-	// /proc/cmdline. Kernel parameters are split on the first `=`, taking the
-	// left hand side as the Kargs key, and the right hand side as the value.
-	// If there is no `=` in the parameter, the entire parameter becomes the
-	// key with an empty value. All keys and values are strings.
-	//
-	// For example, if there were a parameter `ide-core.nodma=0.1`, then Kargs
-	// will contain a key `ide-core.nodma` with a value of `0.1`. Kargs may be
-	// referenced in templates using the `kargs` template function. See more
-	// examples below.
-	Kargs map[string]string `json:"kargs,omitempty"`
 
 	// Vars contains key/value pairs. Every string value is evaluated as
 	// a template. Every template value may only reference kernel parameters

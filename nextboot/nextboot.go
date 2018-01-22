@@ -14,7 +14,7 @@ type Config struct {
 	// examples below.
 	Kargs map[string]string `json:"kargs,omitempty"`
 
-	// V1 action.
+	// V1 specifies an action to be taken by an ePoxy client.
 	V1 *V1 `json:"v1,omitempty"`
 }
 

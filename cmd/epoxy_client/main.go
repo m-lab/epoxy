@@ -13,7 +13,7 @@ import (
 	"log"
 	"net/url"
 
-	"github.com/stephen-soltesz/epoxy-1/nextboot"
+	"github.com/m-lab/epoxy/nextboot"
 )
 
 var (

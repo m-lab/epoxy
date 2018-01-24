@@ -1,3 +1,10 @@
+// epoxy_client is a command line utility for requesting nextboot configurations
+// from the ePoxy server and executing them.
+//
+// epoxy_client should be embedded in initram images served by ePoxy. Once the
+// network is initialized, epoxy_client can complete actions for the current
+// boot stage. i.e. download config from epoxy, download kernel for stage3,
+// kexec kernel.
 package main
 
 import (
@@ -32,7 +39,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Trim leading and trailing whitespace, then split on space.
 	// Read and parse parameters from *cmdline.
 	c.ParseCmdline(string(b))
 

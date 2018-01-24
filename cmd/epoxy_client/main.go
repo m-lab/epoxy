@@ -31,8 +31,8 @@ func main() {
 	var result string
 
 	flag.Parse()
-	// TODO: optionally retry in a loop until success, or automatically reboot
-	// after 8hrs of failure.
+	// TODO: Optionally retry in a loop until success or 6 hours of
+	// failure have occurred. Automatically reboot after 6 hours of failure.
 	c := &nextboot.Config{}
 
 	b, err := ioutil.ReadFile(*cmdline)
@@ -54,6 +54,7 @@ func main() {
 	// Report a message to the ePoxy server after running.
 	values := url.Values{}
 	// TODO: report additional host information.
+	// TODO: log the evaluate state of c.V1 -- helpful especially for errors.
 	values.Set("message", result)
 
 	err = c.Report(*report, values)

@@ -60,14 +60,12 @@ type V1 struct {
 	//
 	// For compatibility with template lookup, Vars keys must not contain ".".
 	//
-	// Vars supports three value types:
+	// Vars supports two value types:
 	//
 	//   1. string - evaluated as a template.
 	//   2. []string -- as a convenience, an array of strings is first converted
 	//         to a single string by joining each element with a space. After
 	//         converstion the result is evaluated as a template.
-	//   3. map[string]interface{} -- as a convenience, allows creation of
-	//         recursively nested names.
 	//
 	// Other types are ignored.
 	//

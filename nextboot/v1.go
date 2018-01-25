@@ -1,9 +1,14 @@
 package nextboot
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // ParseCmdline parses the contents of `cmdline` as kernel parameters to
@@ -46,5 +51,48 @@ func (c *Config) Run(action string, dryrun bool) error {
 // Report reports values to the URL stored in `Kargs[report]`.
 func (c *Config) Report(report string, values url.Values) error {
 	log.Printf("Reporting values to: %s", c.Kargs[report])
-	return nil
+	reportURL, ok := c.Kargs[report]
+	if !ok {
+		return fmt.Errorf("Action URL not found: %s", report)
+	}
+
+	// Add a the current config as a debug parameter on every Report.
+	values.Set("debug.config", c.String())
+	resp, err := postWithTimeout(reportURL, values, 2*time.Hour)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// TODO: what statuses should we support?
+	// Note: we expect http.StatusNoContent, but accept any 200 code.
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return nil
+	}
+	return fmt.Errorf("Bad status code: got %d, expected %d",
+		resp.StatusCode, http.StatusNoContent)
+}
+
+func postWithTimeout(url string, values url.Values, timeout time.Duration) (*http.Response, error) {
+	body := strings.NewReader(values.Encode())
+	req, err := http.NewRequest("POST", url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel() // cancel the context if Do() returns before timeout.
+	req.WithContext(ctx)
+
+	client := &http.Client{}
+	return client.Do(req)
+}
+
+func (c *Config) String() string {
+	b, err := json.MarshalIndent(c, "", "    ")
+	if err != nil {
+		// Marshal errors occur if there is an unmarshalable type, which Config does not have.
+		return err.Error()
+	}
+	return string(b)
 }

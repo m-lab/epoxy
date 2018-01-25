@@ -99,10 +99,11 @@ func TestConfig_String(t *testing.T) {
 				Kargs: map[string]string{},
 				V1:    &V1{},
 			},
+			// Be careful with white space. Indent with tabs, and spaces in the json.
 			want: dedent.Dedent(`
-          {
-              "v1": {}
-          }`),
+				{
+				    "v1": {}
+				}`),
 		},
 		{
 			name: "full",
@@ -127,28 +128,28 @@ func TestConfig_String(t *testing.T) {
 				},
 			},
 			want: dedent.Dedent(`
-          {
-              "kargs": {
-                  "key": "val"
-              },
-              "v1": {
-                  "chain": "http://foo.com/post",
-                  "vars": {
-                      "key": "var"
-                  },
-                  "files": {
-                      "vmlinuz": {
-                          "url": "http://foo.com/download"
-                      }
-                  },
-                  "env": {
-                      "a": "b"
-                  },
-                  "commands": [
-                      "/bin/echo ok"
-                  ]
-              }
-          }`),
+				{
+				    "kargs": {
+				        "key": "val"
+				    },
+				    "v1": {
+				        "chain": "http://foo.com/post",
+				        "vars": {
+				            "key": "var"
+				        },
+				        "files": {
+				            "vmlinuz": {
+				                "url": "http://foo.com/download"
+				            }
+				        },
+				        "env": {
+				            "a": "b"
+				        },
+				        "commands": [
+				            "/bin/echo ok"
+				        ]
+				    }
+				}`),
 		},
 	}
 	for _, tt := range tests {
@@ -180,10 +181,7 @@ func TestConfig_Report(t *testing.T) {
 			}
 			// Verify that the expected keys are present.
 			for k := range expectedValues {
-				if k == "debug.config" {
-					continue
-				}
-				if r.PostForm.Get(k) != expectedValues.Get(k) {
+				if k != "debug.config" && r.PostForm.Get(k) != expectedValues.Get(k) {
 					t.Fatalf("Report Handler: got %v; want %v",
 						r.PostForm.Get("message"), expectedValues.Get("message"))
 				}
@@ -221,7 +219,7 @@ func TestConfig_Report(t *testing.T) {
 			name: "broken-url",
 			kargs: map[string]string{
 				// Deliberately construct an invalid URL.
-				"epoxy.report": ts.URL[:len(ts.URL)-1],
+				"epoxy.report": ":this-is-not-a-url",
 			},
 			args: args{
 				report: "epoxy.report",

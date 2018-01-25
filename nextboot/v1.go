@@ -65,7 +65,7 @@ func (c *Config) Report(report string, values url.Values) error {
 	// Add the current config as a debug parameter on every Report.
 	values.Set("debug.config", c.String())
 	// TODO: make timeout configurable.
-	resp, err := postWithTimeout(reportURL, values, 2*time.Hour)
+	resp, err := postWithTimeout(reportURL, values, 10*time.Minute)
 	if err != nil {
 		return err
 	}
@@ -73,6 +73,7 @@ func (c *Config) Report(report string, values url.Values) error {
 
 	// TODO: what statuses should we support?
 	// Note: we expect http.StatusNoContent, but accept any 200 code.
+	// Note: the go client automatically handles standard redirects.
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil
 	}

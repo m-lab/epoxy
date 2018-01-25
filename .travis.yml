@@ -28,6 +28,8 @@ before_install:
 # gcloud deploy operations.
 - if [[ -n "$encrypted_2ac64e4220d5_iv" ]] ; then
   tar -C /tmp -xvf /tmp/service-accounts.tar ; fi
+- go get github.com/mattn/goveralls
+- go get github.com/wadey/gocovmerge
 
 # These directories will be cached on successful "script" builds, and restored,
 # if available, to save time on future builds.
@@ -36,9 +38,18 @@ cache:
     - "$HOME/google-cloud-sdk/"
 
 script:
-- go test -v ./...
+# Run "unit tests" with coverage.
+- for module in handler nextboot storage template ; do
+  go test -v -covermode=count -coverprofile=$module.cov github.com/m-lab/epoxy/$module ;
+  done
+
+# Coveralls
+- $HOME/gopath/bin/gocovmerge *.cov > merge.cov
+- $HOME/gopath/bin/goveralls -coverprofile=merge.cov -service=travis-ci
+
 - cd $TRAVIS_BUILD_DIR/cmd/epoxy_boot_server && go build
 - $TRAVIS_BUILD_DIR/travis/install_gcloud.sh
+
 
 # NB: Travis has a Google AppEngine (gae) provider, however it does not work
 # here (unknown).

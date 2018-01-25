@@ -90,7 +90,6 @@ func (c *Config) runCommands() error {
 
 func (c *Config) loadConfig(source, method string) error {
 	var err error
-	// var data []byte
 	var body io.ReadCloser
 	switch {
 	case strings.HasPrefix(source, "file://"):
@@ -113,8 +112,6 @@ func (c *Config) loadConfig(source, method string) error {
 	defer body.Close()
 
 	n := &Config{}
-	// fmt.Println(string(data))
-	// err = json.Unmarshal(data, &n)
 	err = json.NewDecoder(body).Decode(&n)
 	if err != nil {
 		return err

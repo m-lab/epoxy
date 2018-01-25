@@ -145,8 +145,9 @@ func postDownload(source string, values url.Values, timeout time.Duration) (io.R
 	if err != nil {
 		return nil, err
 	}
-	// defer resp.Body.Close()
 
+	// TODO: what statuses should we support?
+	// Note: the go client automatically handles standard redirects.
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("Bad status code: got %d, expected 200 code", resp.StatusCode)
 	}
@@ -165,20 +166,13 @@ func (c *Config) Report(report string, values url.Values) error {
 	// Add the current config as a debug parameter on every Report.
 	values.Set("debug.config", c.String())
 	// TODO: make timeout configurable.
-	resp, err := postWithTimeout(reportURL, values, 10*time.Minute)
+	body, err := postDownload(reportURL, values, 10*time.Minute)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	// TODO: what statuses should we support?
-	// Note: we expect http.StatusNoContent, but accept any 200 code.
-	// Note: the go client automatically handles standard redirects.
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		return nil
-	}
-	return fmt.Errorf("Bad status code: got %d, expected %d",
-		resp.StatusCode, http.StatusNoContent)
+	// Unconditionally close body, since don't expect any content.
+	body.Close()
+	return nil
 }
 
 func postWithTimeout(url string, values url.Values, timeout time.Duration) (*http.Response, error) {

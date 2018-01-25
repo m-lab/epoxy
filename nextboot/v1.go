@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	ErrActionURLNotFound = errors.New("")
+	// ErrActionURLNotFound is returned when the Kargs key is missing.
+	ErrActionURLNotFound = errors.New("Action URL key not found")
 )
 
 // ParseCmdline parses the contents of `cmdline` as kernel parameters to
@@ -55,13 +56,13 @@ func (c *Config) Run(action string, dryrun bool) error {
 
 // Report reports values to the URL stored in `Kargs[report]`.
 func (c *Config) Report(report string, values url.Values) error {
-	log.Printf("Reporting values to %s=%s", report, c.Kargs[report])
+	log.Printf("Reporting values using %s=%s", report, c.Kargs[report])
 	reportURL, ok := c.Kargs[report]
 	if !ok {
 		return ErrActionURLNotFound
 	}
 
-	// Add a the current config as a debug parameter on every Report.
+	// Add the current config as a debug parameter on every Report.
 	values.Set("debug.config", c.String())
 	// TODO: make timeout configurable.
 	resp, err := postWithTimeout(reportURL, values, 2*time.Hour)
@@ -80,15 +81,14 @@ func (c *Config) Report(report string, values url.Values) error {
 }
 
 func postWithTimeout(url string, values url.Values, timeout time.Duration) (*http.Response, error) {
-	body := strings.NewReader(values.Encode())
-	req, err := http.NewRequest("POST", url, body)
+	req, err := http.NewRequest("POST", url, strings.NewReader(values.Encode()))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel() // cancel the context if Do() returns before timeout.
-	req.WithContext(ctx)
+	req = req.WithContext(ctx)
 
 	client := &http.Client{}
 	return client.Do(req)

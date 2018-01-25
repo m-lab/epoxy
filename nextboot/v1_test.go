@@ -1,6 +1,7 @@
 package nextboot
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -248,6 +249,67 @@ func TestConfig_Report(t *testing.T) {
 			if err := c.Report(tt.args.report, tt.args.values); (err != nil) != tt.wantErr {
 				t.Errorf("Config.Report() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
+
+func TestConfig_Run(t *testing.T) {
+	chainfmt := `{"v1": {"chain": "%s"}}`
+	cmd := `{"v1": {"commands": ["/bin/echo okay"]}}`
+	tests := []struct {
+		name       string
+		action     string
+		statusPost int
+		statusGet  int
+		wantErr    bool
+	}{
+		{
+			name:       "successful-post-chain-then-get-commands",
+			action:     "epoxy.stage2",
+			statusPost: http.StatusOK,
+			statusGet:  http.StatusOK,
+			wantErr:    false,
+		},
+		{
+			name:       "bad-action-key",
+			action:     "epoxy.wrongkey",
+			statusPost: http.StatusNotFound,
+			wantErr:    true,
+		},
+		{
+			name:       "bad-post-http-respose-status",
+			action:     "epoxy.stage2",
+			statusPost: http.StatusNotFound,
+			wantErr:    true,
+		},
+		{
+			name:       "bad-get-http-reponse-status",
+			action:     "epoxy.stage2",
+			statusPost: http.StatusOK,
+			statusGet:  http.StatusNotFound,
+			wantErr:    true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ts2 := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(tt.statusGet)
+					w.Write([]byte(cmd))
+				}))
+			ts1 := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(tt.statusPost)
+					w.Write([]byte(fmt.Sprintf(chainfmt, ts2.URL)))
+				}))
+			c := &Config{
+				Kargs: map[string]string{"epoxy.stage2": ts1.URL},
+			}
+			if err := c.Run(tt.action, false); (err != nil) != tt.wantErr {
+				t.Errorf("Config.Run() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			ts1.Close()
+			ts2.Close()
 		})
 	}
 }

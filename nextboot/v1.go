@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 )
@@ -51,7 +53,105 @@ func (c *Config) ParseCmdline(cmdline string) error {
 // Note that this may change state in the ePoxy server.
 func (c *Config) Run(action string, dryrun bool) error {
 	log.Printf("Loading config from: %s", c.Kargs[action])
+	actionURL, ok := c.Kargs[action]
+	if !ok {
+		return ErrActionURLNotFound
+	}
+	// Load config from ePoxy server.
+	err := c.loadConfig(actionURL, "POST")
+	if err != nil {
+		return err
+	}
+	return c.runChainOrCommands()
+}
+
+func (c *Config) runChainOrCommands() error {
+	if c.V1.Chain != "" {
+		// If the Chain URL is present, run it.
+		log.Println("Running chain", c.V1.Chain)
+		err := c.loadConfig(c.V1.Chain, "GET")
+		if err != nil {
+			return err
+		}
+		// Since we've loaded a new config, restart.
+		return c.runChainOrCommands()
+	}
+	// There is no Chain URL, so attempt to run Commands.
+	log.Println("Running commands")
+	return c.runCommands()
+}
+
+func (c *Config) runCommands() error {
+	// TODO: implement var, files, env, and commands template evaluation
+	// and command execution.
+	log.Println(c.String())
 	return nil
+}
+
+func (c *Config) loadConfig(source, method string) error {
+	var err error
+	// var data []byte
+	var body io.ReadCloser
+	switch {
+	case strings.HasPrefix(source, "file://"):
+		// Strip off the file:// prefix. Useful for testing and possibly stage1 legacy boot CDs.
+		// data, err = ioutil.ReadFile(source[7:])
+		body, err = os.Open(source[7:])
+	case method == "POST":
+		// TODO: send additional host metadata in values.
+		// TODO: make timeout configurable.
+		// Note: this will typically be a state-changing request to the ePoxy server.
+		body, err = postDownload(source, url.Values{}, 10*time.Minute)
+	case method == "GET":
+		// TODO: make timeout configurable.
+		// Note: this will typically be a simple file download from GCS.
+		body, err = getDownload(source, 10*time.Minute)
+	}
+	if err != nil {
+		return err
+	}
+	defer body.Close()
+
+	n := &Config{}
+	// fmt.Println(string(data))
+	// err = json.Unmarshal(data, &n)
+	err = json.NewDecoder(body).Decode(&n)
+	if err != nil {
+		return err
+	}
+	// Note: we never overwrite Kargs from an external source.
+	// Note: only overwrite the V1 action with what we just loaded above.
+	c.V1 = n.V1
+	return nil
+}
+
+func getDownload(source string, timeout time.Duration) (io.ReadCloser, error) {
+	// TODO: implement a reliable, large file download.
+	// TODO: use timeout.
+	client := &http.Client{}
+	resp, err := client.Get(source)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("Bad status code: got %d, expected 200 code", resp.StatusCode)
+	}
+	return resp.Body, nil
+}
+
+// postDownload
+func postDownload(source string, values url.Values, timeout time.Duration) (io.ReadCloser, error) {
+	resp, err := postWithTimeout(source, values, timeout)
+	if err != nil {
+		return nil, err
+	}
+	// defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("Bad status code: got %d, expected 200 code", resp.StatusCode)
+	}
+
+	return resp.Body, nil
 }
 
 // Report reports values to the URL stored in `Kargs[report]`.

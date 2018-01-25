@@ -1,6 +1,8 @@
 package nextboot
 
 import (
+	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -9,6 +11,12 @@ import (
 	"github.com/kr/pretty"
 	"github.com/renstrom/dedent"
 )
+
+func init() {
+	// Disable log output.
+	log.SetFlags(0)
+	log.SetOutput(ioutil.Discard)
+}
 
 func TestConfig_ParseCmdline(t *testing.T) {
 	type input struct {
@@ -23,6 +31,11 @@ func TestConfig_ParseCmdline(t *testing.T) {
 		expected map[string]string
 	}{
 		// All tests are expected to succeed.
+		{
+			name:     "single word",
+			input:    "key",
+			expected: map[string]string{"key": ""},
+		},
 		{
 			name:     "single value",
 			input:    "key=val",
@@ -155,16 +168,33 @@ func TestConfig_String(t *testing.T) {
 }
 
 func TestConfig_Report(t *testing.T) {
+	expectedValues := url.Values{
+		"message": {"success"},
+	}
 	ts := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("some", "header")
-			w.WriteHeader(http.StatusNoContent)
+			// Parse the form data sent from client.
 			err := r.ParseForm()
 			if err != nil {
 				t.Fatal(err)
 			}
-			pretty.Print(r.PostForm)
+			// Verify that the expected keys are present.
+			for k := range expectedValues {
+				if k == "debug.config" {
+					continue
+				}
+				if r.PostForm.Get(k) != expectedValues.Get(k) {
+					t.Fatalf("Report Handler: got %v; want %v",
+						r.PostForm.Get("message"), expectedValues.Get("message"))
+				}
+			}
+			// Verify that the "debug.config" value is present.
+			if r.PostForm.Get("debug.config") == "" {
+				t.Fatalf("Report Handler: missing 'debug.config' form value")
+			}
+			w.WriteHeader(http.StatusNoContent)
 		}))
+	defer ts.Close()
 	type args struct {
 		report string
 		values url.Values
@@ -175,17 +205,41 @@ func TestConfig_Report(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
 		{
-			"basic",
-			map[string]string{
+			name: "working",
+			kargs: map[string]string{
+				// This key must match the args report name.
 				"epoxy.report": ts.URL,
 			},
-			args{
-				"epoxy.report",
-				url.Values{},
+			args: args{
+				report: "epoxy.report",
+				values: expectedValues,
 			},
-			false,
+			wantErr: false,
+		},
+		{
+			name: "broken-url",
+			kargs: map[string]string{
+				// Deliberately construct an invalid URL.
+				"epoxy.report": ts.URL[:len(ts.URL)-1],
+			},
+			args: args{
+				report: "epoxy.report",
+				values: url.Values{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "bad-action-key",
+			kargs: map[string]string{
+				"epoxy.report": ts.URL,
+			},
+			args: args{
+				// Deliberately use the wrong key value in kargs.
+				report: "epoxy.wrongkey",
+				values: url.Values{},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

@@ -3,12 +3,17 @@ package nextboot
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+)
+
+var (
+	ErrActionURLNotFound = errors.New("")
 )
 
 // ParseCmdline parses the contents of `cmdline` as kernel parameters to
@@ -50,14 +55,15 @@ func (c *Config) Run(action string, dryrun bool) error {
 
 // Report reports values to the URL stored in `Kargs[report]`.
 func (c *Config) Report(report string, values url.Values) error {
-	log.Printf("Reporting values to: %s", c.Kargs[report])
+	log.Printf("Reporting values to %s=%s", report, c.Kargs[report])
 	reportURL, ok := c.Kargs[report]
 	if !ok {
-		return fmt.Errorf("Action URL not found: %s", report)
+		return ErrActionURLNotFound
 	}
 
 	// Add a the current config as a debug parameter on every Report.
 	values.Set("debug.config", c.String())
+	// TODO: make timeout configurable.
 	resp, err := postWithTimeout(reportURL, values, 2*time.Hour)
 	if err != nil {
 		return err
@@ -88,6 +94,7 @@ func postWithTimeout(url string, values url.Values, timeout time.Duration) (*htt
 	return client.Do(req)
 }
 
+// String converts the Config instance into a string representation.
 func (c *Config) String() string {
 	b, err := json.MarshalIndent(c, "", "    ")
 	if err != nil {

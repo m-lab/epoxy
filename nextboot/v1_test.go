@@ -254,8 +254,6 @@ func TestConfig_Report(t *testing.T) {
 }
 
 func TestConfig_Run(t *testing.T) {
-	chainfmt := `{"v1": {"chain": "%s"}}`
-	cmd := `{"v1": {"commands": ["/bin/echo okay"]}}`
 	tests := []struct {
 		name       string
 		action     string
@@ -264,17 +262,16 @@ func TestConfig_Run(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name:       "successful-post-chain-then-get-commands",
+			name:       "successful-post-chain-and-get-commands",
 			action:     "epoxy.stage2",
 			statusPost: http.StatusOK,
 			statusGet:  http.StatusOK,
 			wantErr:    false,
 		},
 		{
-			name:       "bad-action-key",
-			action:     "epoxy.wrongkey",
-			statusPost: http.StatusNotFound,
-			wantErr:    true,
+			name:    "bad-action-key",
+			action:  "epoxy.wrongkey",
+			wantErr: true,
 		},
 		{
 			name:       "bad-post-http-respose-status",
@@ -292,24 +289,33 @@ func TestConfig_Run(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ts2 := httptest.NewServer(
+			// Setup two local test servers to simulate an epoxy client Run. The epoxy
+			// client first POSTs a request (typically to the ePoxy server) to receive a
+			// Chain reference to a second server (typically on GCS). The epoxy client
+			// then GETs that URL, which will typically have commands to execute.
+			tsGet := httptest.NewServer(
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(tt.statusGet)
-					w.Write([]byte(cmd))
+					// Declare a minimal config with one command.
+					c := &Config{V1: &V1{Commands: []interface{}{"/bin/echo okay"}}}
+					fmt.Fprint(w, c.String())
 				}))
-			ts1 := httptest.NewServer(
+			tsPost := httptest.NewServer(
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(tt.statusPost)
-					w.Write([]byte(fmt.Sprintf(chainfmt, ts2.URL)))
+					// Declare a minimal config with a Chain reference to tsGet.
+					c := &Config{V1: &V1{Chain: tsGet.URL}}
+					fmt.Fprint(w, c.String())
 				}))
 			c := &Config{
-				Kargs: map[string]string{"epoxy.stage2": ts1.URL},
+				// Start off initializing the stage2 action url to the tsPost test server.
+				Kargs: map[string]string{"epoxy.stage2": tsPost.URL},
 			}
 			if err := c.Run(tt.action, false); (err != nil) != tt.wantErr {
 				t.Errorf("Config.Run() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			ts1.Close()
-			ts2.Close()
+			tsPost.Close()
+			tsGet.Close()
 		})
 	}
 }

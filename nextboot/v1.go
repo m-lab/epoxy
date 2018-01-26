@@ -50,7 +50,7 @@ func (c *Config) ParseCmdline(cmdline string) error {
 // error occurs or all commands are successfully executed.
 //
 // If dryrun is true, then configuration commands are printed but not executed.
-// Note that this may change state in the ePoxy server.
+// Note: even in dryrun mode action URLS **may change state** in the ePoxy server.
 func (c *Config) Run(action string, dryrun bool) error {
 	log.Printf("Loading config from: %s", c.Kargs[action])
 	actionURL, ok := c.Kargs[action]
@@ -58,27 +58,29 @@ func (c *Config) Run(action string, dryrun bool) error {
 		return ErrActionURLNotFound
 	}
 	// Load config from ePoxy server.
-	err := c.loadConfig(actionURL, "POST")
+	err := c.loadAction(actionURL, "POST")
 	if err != nil {
 		return err
 	}
-	return c.runChainOrCommands()
-}
-
-func (c *Config) runChainOrCommands() error {
-	if c.V1.Chain != "" {
-		// If the Chain URL is present, run it.
-		log.Println("Running chain", c.V1.Chain)
-		err := c.loadConfig(c.V1.Chain, "GET")
-		if err != nil {
-			return err
-		}
-		// Since we've loaded a new config, restart.
-		return c.runChainOrCommands()
+	err = c.maybeLoadChain()
+	if err != nil {
+		return err
 	}
 	// There is no Chain URL, so attempt to run Commands.
 	log.Println("Running commands")
 	return c.runCommands()
+}
+
+func (c *Config) maybeLoadChain() error {
+	for c.V1.Chain != "" {
+		// If the Chain URL is present, run it.
+		log.Println("Running chain", c.V1.Chain)
+		err := c.loadAction(c.V1.Chain, "GET")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *Config) runCommands() error {
@@ -88,12 +90,13 @@ func (c *Config) runCommands() error {
 	return nil
 }
 
-func (c *Config) loadConfig(source, method string) error {
+func (c *Config) loadAction(source, method string) error {
 	var err error
 	var body io.ReadCloser
 	switch {
 	case strings.HasPrefix(source, "file://"):
-		// Strip off the file:// prefix. Useful for testing and possibly stage1 legacy boot CDs.
+		// Useful for testing and possibly stage1 legacy boot CDs.
+		// Strip off the file:// prefix before opening named file.
 		body, err = os.Open(source[7:])
 	case method == "POST":
 		// TODO: send additional host metadata in values.

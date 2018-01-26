@@ -124,7 +124,7 @@ func TestConfig_String(t *testing.T) {
 						"a": "b",
 					},
 					Commands: []interface{}{
-						"/bin/echo ok",
+						"/bin/true",
 					},
 				},
 			},
@@ -147,7 +147,7 @@ func TestConfig_String(t *testing.T) {
 				            "a": "b"
 				        },
 				        "commands": [
-				            "/bin/echo ok"
+				            "/bin/true"
 				        ]
 				    }
 				}`),
@@ -297,7 +297,7 @@ func TestConfig_Run(t *testing.T) {
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(tt.statusGet)
 					// Declare a minimal config with one command.
-					c := &Config{V1: &V1{Commands: []interface{}{"/bin/echo okay"}}}
+					c := &Config{V1: &V1{Commands: []interface{}{"/bin/true okay"}}}
 					fmt.Fprint(w, c.String())
 				}))
 			tsPost := httptest.NewServer(
@@ -316,6 +316,255 @@ func TestConfig_Run(t *testing.T) {
 			}
 			tsPost.Close()
 			tsGet.Close()
+		})
+	}
+}
+
+func TestConfig_evaluateVars(t *testing.T) {
+	tests := []struct {
+		name     string
+		kargs    map[string]string
+		v1       *V1
+		expValue string
+		wantErr  bool
+	}{
+		{
+			name:  "successfully-evaluate-vars",
+			kargs: map[string]string{"kargkey": "world"},
+			v1: &V1{
+				Vars: map[string]interface{}{
+					"varkey": "hello, {{kargs `kargkey`}}",
+				},
+			},
+			expValue: "hello, world",
+			wantErr:  false,
+		},
+		{
+			name:  "successfully-evaluate-vars-from-array",
+			kargs: map[string]string{"kargkey": "world"},
+			v1: &V1{
+				Vars: map[string]interface{}{
+					"varkey": []interface{}{"hello,", "{{kargs `kargkey`}}"},
+				},
+			},
+			expValue: "hello, world",
+			wantErr:  false,
+		},
+		{
+			name:  "bad-vars-type",
+			kargs: map[string]string{"kargkey": "world"},
+			v1: &V1{
+				Vars: map[string]interface{}{
+					"varkey": 10,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:  "bad-vars-template",
+			kargs: map[string]string{"kargkey": "world"},
+			v1: &V1{
+				Vars: map[string]interface{}{
+					// No quotes around `key`.
+					"varkey": "hello, {{kargs kargkey}}",
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Config{
+				Kargs: tt.kargs,
+				V1:    tt.v1,
+			}
+			if err := c.evaluateVars(); (err != nil) != tt.wantErr {
+				t.Errorf("Config.evaluateVars() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestConfig_evaluateEnv(t *testing.T) {
+	tests := []struct {
+		name     string
+		kargs    map[string]string
+		v1       *V1
+		expValue string
+		wantErr  bool
+	}{
+		{
+			name:  "success-env-template-uses-kargs-and-vars",
+			kargs: map[string]string{"kargkey": "world"},
+			v1: &V1{
+				Vars: map[string]interface{}{
+					"varkey": "world",
+				},
+				Env: map[string]string{
+					"envkey": "hello, {{kargs `kargkey`}}; hello, {{.vars.varkey}}",
+				},
+			},
+			expValue: "hello, world; hello, world",
+			wantErr:  false,
+		},
+		{
+			name:  "error-env-template",
+			kargs: map[string]string{},
+			v1: &V1{
+				Env: map[string]string{
+					// Attempt to use a kargs without quoting.
+					"envkey": "{{kargs unquoted_key}}",
+				},
+			},
+			// The value does not change.
+			expValue: "{{kargs unquoted_key}}",
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Config{
+				Kargs: tt.kargs,
+				V1:    tt.v1,
+			}
+			err := c.evaluateEnv()
+			if (err != nil) != tt.wantErr || c.V1.Env["envkey"] != tt.expValue {
+				t.Errorf("Config.evaluateEnv() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Config.evaluateEnv() got = %q, want %q", c.V1.Env["envkey"], tt.expValue)
+			}
+		})
+	}
+}
+
+func TestConfig_evaluateCommands(t *testing.T) {
+	tests := []struct {
+		name    string
+		kargs   map[string]string
+		v1      *V1
+		wantErr bool
+	}{
+		{
+			name: "success-template-replace-vars",
+			v1: &V1{
+				Vars: map[string]interface{}{
+					"varkey": "varvalue",
+				},
+				Commands: []interface{}{
+					"/bin/true {{.vars.varkey}}",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "success-commands-as-separate-args",
+			v1: &V1{
+				Vars: map[string]interface{}{
+					"varkey": "varvalue",
+				},
+				Commands: []interface{}{
+					[]interface{}{"/bin/true", "{{.vars.varkey}}"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "error-incomplete-quote-in-command",
+			v1: &V1{
+				Commands: []interface{}{
+					"/bin/true 'single quote is incomplete",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error-bad-template-in-string-command",
+			v1: &V1{
+				Commands: []interface{}{
+					"/bin/true {{kargs missingquotes}}",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error-bad-template-in-array-command",
+			v1: &V1{
+				Commands: []interface{}{
+					[]interface{}{"/bin/true", "{{kargs missingquotes}}"},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Config{
+				Kargs: tt.kargs,
+				V1:    tt.v1,
+			}
+			err := c.evaluateCommands()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Config.evaluateCommands() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestConfig_runCommands(t *testing.T) {
+	tests := []struct {
+		name    string
+		v1      *V1
+		wantErr bool
+	}{
+		{
+			name: "success-with-comments",
+			v1: &V1{
+				Commands: []interface{}{
+					"# This is a comment!",
+					"/bin/true",
+					"# So is this!",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "error-command-fails",
+			v1: &V1{
+				Commands: []interface{}{
+					"/bin/false",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error-bad-environment",
+			v1: &V1{
+				Env: map[string]string{
+					"PATH": "/badpath",
+				},
+				Commands: []interface{}{
+					"echo this should not work",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "success-echo-after-PATH-reset",
+			v1: &V1{
+				Commands: []interface{}{
+					"true this *should* work",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Config{
+				V1: tt.v1,
+			}
+			if err := c.runCommands(); (err != nil) != tt.wantErr {
+				t.Errorf("Config.runCommands() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }

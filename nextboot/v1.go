@@ -135,19 +135,16 @@ func getDownload(source string, timeout time.Duration) (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-// postDownload
 func postDownload(source string, values url.Values, timeout time.Duration) (io.ReadCloser, error) {
 	resp, err := postWithTimeout(source, values, timeout)
 	if err != nil {
 		return nil, err
 	}
-
 	// TODO: what statuses should we support?
 	// Note: the go client automatically handles standard redirects.
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("Bad status code: got %d, expected 200 code", resp.StatusCode)
 	}
-
 	return resp.Body, nil
 }
 

@@ -112,13 +112,14 @@ func (c *Config) runCommands() error {
 		return err
 	}
 
-	// backup and restore the current process environment. updateCurrentEnv is
-	// necessary to use user-specified PATH for command lookup and prevent more
-	// complex fork/exec hoops.
+	// Update, backup, and restore the current process environment. updateCurrentEnv
+	// is necessary to use user-specified PATH for command lookup and avoid more
+	// complex fork/exec steps.
 	backupEnv := updateCurrentEnv(c.V1.Env)
 	defer updateCurrentEnv(backupEnv)
 
 	for _, fields := range c.V1.Commands {
+		// Convert the native Commands []interface{} type to []string.
 		args := interfaceToStringArray(fields)
 		if len(args) == 0 {
 			// Comments are zero length.
@@ -129,11 +130,13 @@ func (c *Config) runCommands() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Hour)
 		defer cancel()
 
+		// cmd inherits the current process environment.
 		cmd := exec.CommandContext(ctx, args[0], args[1:]...)
-		cmd.Env = append(os.Environ(), mapToEnv(c.V1.Env)...)
+
 		// Use the current stdout and stderr for subcommands.
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+
 		if err := cmd.Run(); err != nil {
 			// Report error with the command args and error.
 			return fmt.Errorf("%q : %v", args, err)
@@ -156,13 +159,14 @@ func (c *Config) evaluateVars() error {
 	for key, value := range c.V1.Vars {
 		switch val := value.(type) {
 		case []interface{}:
-			// Replace with a string.
+			// Reconstruct a single string from an array of strings.
 			c.V1.Vars[key] = strings.Join(interfaceToStringArray(val), " ")
 		case string:
 			// No-op, this is good as-is.
 		default:
 			return fmt.Errorf("Unsupported type: %T %#v", val, val)
 		}
+		// Due to the above, all types be strings.
 		sval, err := c.evaluateAsTemplate(c.V1.Vars[key].(string), 0)
 		if err != nil {
 			return err
@@ -196,34 +200,34 @@ func (c *Config) evaluateCommands() error {
 	// 1. split all strings into []interface{}, the default type used
 	// by JSON Unmarshal for array types.
 	for i, value := range c.V1.Commands {
-		switch cmd := value.(type) {
+		switch cmdTmpl := value.(type) {
 		case string:
 			// To support kargs we must evaluate the template before splitting.
-			args, err := c.evaluateAsTemplate(cmd, useVars|useFiles)
+			cmd, err := c.evaluateAsTemplate(cmdTmpl, useVars|useFiles)
 			if err != nil {
 				return err
 			}
 			// Note: shlex.Split returns an empty list for comments.
-			fields, err := shlex.Split(args)
+			args, err := shlex.Split(cmd)
 			if err != nil {
 				// Split may fail due to incomplete quotes.
 				return err
 			}
 			// Convert []string to []interface{}.
-			c.V1.Commands[i] = stringToInterfaceArray(fields)
+			c.V1.Commands[i] = stringToInterfaceArray(args)
 		}
 	}
 	// 2. Now every element of Commands is an []interface{}. Evaluate every
 	// element of every []interface{} as a template.
 	for _, value := range c.V1.Commands {
-		switch fields := value.(type) {
+		switch args := value.(type) {
 		case []interface{}:
-			for i, e := range fields {
-				arg, err := c.evaluateAsTemplate(fmt.Sprint(e), useVars|useFiles)
+			for i, argTmpl := range args {
+				arg, err := c.evaluateAsTemplate(fmt.Sprint(argTmpl), useVars|useFiles)
 				if err != nil {
 					return err
 				}
-				fields[i] = arg
+				args[i] = arg
 			}
 		}
 	}
@@ -253,6 +257,7 @@ func stringToInterfaceArray(a []string) []interface{} {
 
 func (c *Config) evaluateAsTemplate(value string, flags int) (string, error) {
 	var t *template.Template
+	// Construct the "func map" for the custom `kargs` template function.
 	kmap := template.FuncMap{
 		"kargs": func(s string) string {
 			return c.Kargs[s]
@@ -277,14 +282,6 @@ func (c *Config) evaluateAsTemplate(value string, flags int) (string, error) {
 		return "", err
 	}
 	return b.String(), nil
-}
-
-func mapToEnv(m map[string]string) []string {
-	env := []string{}
-	for key, val := range m {
-		env = append(env, key+"="+val)
-	}
-	return env
 }
 
 func (c *Config) loadAction(source, method string) error {

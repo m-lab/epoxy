@@ -94,7 +94,6 @@ func (c *Config) loadConfig(source, method string) error {
 	switch {
 	case strings.HasPrefix(source, "file://"):
 		// Strip off the file:// prefix. Useful for testing and possibly stage1 legacy boot CDs.
-		// data, err = ioutil.ReadFile(source[7:])
 		body, err = os.Open(source[7:])
 	case method == "POST":
 		// TODO: send additional host metadata in values.

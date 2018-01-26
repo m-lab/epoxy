@@ -1,6 +1,7 @@
 package nextboot
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -248,6 +249,73 @@ func TestConfig_Report(t *testing.T) {
 			if err := c.Report(tt.args.report, tt.args.values); (err != nil) != tt.wantErr {
 				t.Errorf("Config.Report() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
+
+func TestConfig_Run(t *testing.T) {
+	tests := []struct {
+		name       string
+		action     string
+		statusPost int
+		statusGet  int
+		wantErr    bool
+	}{
+		{
+			name:       "successful-post-chain-and-get-commands",
+			action:     "epoxy.stage2",
+			statusPost: http.StatusOK,
+			statusGet:  http.StatusOK,
+			wantErr:    false,
+		},
+		{
+			name:    "bad-action-key",
+			action:  "epoxy.wrongkey",
+			wantErr: true,
+		},
+		{
+			name:       "bad-post-http-respose-status",
+			action:     "epoxy.stage2",
+			statusPost: http.StatusNotFound,
+			wantErr:    true,
+		},
+		{
+			name:       "bad-get-http-reponse-status",
+			action:     "epoxy.stage2",
+			statusPost: http.StatusOK,
+			statusGet:  http.StatusNotFound,
+			wantErr:    true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup two local test servers to simulate an epoxy client Run. The epoxy
+			// client first POSTs a request (typically to the ePoxy server) to receive a
+			// Chain reference to a second server (typically on GCS). The epoxy client
+			// then GETs that URL, which will typically have commands to execute.
+			tsGet := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(tt.statusGet)
+					// Declare a minimal config with one command.
+					c := &Config{V1: &V1{Commands: []interface{}{"/bin/echo okay"}}}
+					fmt.Fprint(w, c.String())
+				}))
+			tsPost := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(tt.statusPost)
+					// Declare a minimal config with a Chain reference to tsGet.
+					c := &Config{V1: &V1{Chain: tsGet.URL}}
+					fmt.Fprint(w, c.String())
+				}))
+			c := &Config{
+				// Start off initializing the stage2 action url to the tsPost test server.
+				Kargs: map[string]string{"epoxy.stage2": tsPost.URL},
+			}
+			if err := c.Run(tt.action, false); (err != nil) != tt.wantErr {
+				t.Errorf("Config.Run() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			tsPost.Close()
+			tsGet.Close()
 		})
 	}
 }

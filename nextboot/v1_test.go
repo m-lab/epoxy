@@ -351,8 +351,7 @@ func TestConfig_evaluateVars(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name:  "bad-vars-type",
-			kargs: map[string]string{"kargkey": "world"},
+			name: "bad-vars-type",
 			v1: &V1{
 				Vars: map[string]interface{}{
 					"varkey": 10,
@@ -361,8 +360,7 @@ func TestConfig_evaluateVars(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:  "bad-vars-template",
-			kargs: map[string]string{"kargkey": "world"},
+			name: "bad-vars-template",
 			v1: &V1{
 				Vars: map[string]interface{}{
 					// No quotes around `key`.
@@ -438,10 +436,11 @@ func TestConfig_evaluateEnv(t *testing.T) {
 
 func TestConfig_evaluateCommands(t *testing.T) {
 	tests := []struct {
-		name    string
-		kargs   map[string]string
-		v1      *V1
-		wantErr bool
+		name     string
+		kargs    map[string]string
+		v1       *V1
+		expValue []interface{}
+		wantErr  bool
 	}{
 		{
 			name: "success-template-replace-vars",
@@ -452,6 +451,9 @@ func TestConfig_evaluateCommands(t *testing.T) {
 				Commands: []interface{}{
 					"/bin/true {{.vars.varkey}}",
 				},
+			},
+			expValue: []interface{}{
+				[]interface{}{"/bin/true", "varvalue"},
 			},
 			wantErr: false,
 		},
@@ -465,6 +467,9 @@ func TestConfig_evaluateCommands(t *testing.T) {
 					[]interface{}{"/bin/true", "{{.vars.varkey}}"},
 				},
 			},
+			expValue: []interface{}{
+				[]interface{}{"/bin/true", "varvalue"},
+			},
 			wantErr: false,
 		},
 		{
@@ -473,6 +478,10 @@ func TestConfig_evaluateCommands(t *testing.T) {
 				Commands: []interface{}{
 					"/bin/true 'single quote is incomplete",
 				},
+			},
+			expValue: []interface{}{
+				// Unchanged.
+				"/bin/true 'single quote is incomplete",
 			},
 			wantErr: true,
 		},
@@ -483,6 +492,10 @@ func TestConfig_evaluateCommands(t *testing.T) {
 					"/bin/true {{kargs missingquotes}}",
 				},
 			},
+			expValue: []interface{}{
+				// Unchanged.
+				"/bin/true {{kargs missingquotes}}",
+			},
 			wantErr: true,
 		},
 		{
@@ -491,6 +504,10 @@ func TestConfig_evaluateCommands(t *testing.T) {
 				Commands: []interface{}{
 					[]interface{}{"/bin/true", "{{kargs missingquotes}}"},
 				},
+			},
+			expValue: []interface{}{
+				// Unchanged.
+				[]interface{}{"/bin/true", "{{kargs missingquotes}}"},
 			},
 			wantErr: true,
 		},
@@ -502,8 +519,10 @@ func TestConfig_evaluateCommands(t *testing.T) {
 				V1:    tt.v1,
 			}
 			err := c.evaluateCommands()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Config.evaluateCommands() error = %v, wantErr %v", err, tt.wantErr)
+			diff := pretty.Diff(c.V1.Commands, tt.expValue)
+			if (err != nil) != tt.wantErr || len(diff) != 0 {
+				t.Errorf("Config.evaluateCommands() error = %v, wantErr %v\nDiff: %#v",
+					err, tt.wantErr, diff)
 			}
 		})
 	}

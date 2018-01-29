@@ -26,7 +26,7 @@ var (
 
 // useVars and useFiles are flags for evaluating templates.
 const (
-	useVars int = 1 << iota
+	useVars uint32 = 1 << iota
 	useFiles
 )
 
@@ -115,8 +115,8 @@ func (c *Config) runCommands() error {
 	// Update, backup, and restore the current process environment. updateCurrentEnv
 	// is necessary to use user-specified PATH for command lookup and avoid more
 	// complex fork/exec steps.
-	backupEnv := updateCurrentEnv(c.V1.Env)
-	defer updateCurrentEnv(backupEnv)
+	backupEnv, present := updateCurrentEnv(c.V1.Env, map[string]bool{})
+	defer updateCurrentEnv(backupEnv, present)
 
 	for _, fields := range c.V1.Commands {
 		// Convert the native Commands []interface{} type to []string.
@@ -145,13 +145,27 @@ func (c *Config) runCommands() error {
 	return nil
 }
 
-func updateCurrentEnv(env map[string]string) map[string]string {
-	backup := map[string]string{}
-	for key, val := range env {
-		backup[key] = os.Getenv(key)
+// updateCurrentEnv sets variables from setenv in the current process
+// environment and returns a backup of the original values with a map indicating
+// whether the key was originally in the environment for deletion on restoration.
+func updateCurrentEnv(setenv map[string]string, delenv map[string]bool) (map[string]string, map[string]bool) {
+	saveenv := map[string]string{}
+	present := map[string]bool{}
+	for key, val := range setenv {
+		// Lookup the current value of key from environment.
+		orig, found := os.LookupEnv(key)
+		// Save whether key was originally present, and the original value (or empty
+		// string if it wasn't).
+		present[key] = found
+		saveenv[key] = orig
+		// Set the new value.
 		os.Setenv(key, val)
+		// If the key is present in delenv, and was previously not found, unset it.
+		if found, ok := delenv[key]; ok && !found {
+			os.Unsetenv(key)
+		}
 	}
-	return backup
+	return saveenv, present
 }
 
 func (c *Config) evaluateVars() error {
@@ -164,6 +178,7 @@ func (c *Config) evaluateVars() error {
 		case string:
 			// No-op, this is good as-is.
 		default:
+			// TODO: either ignore these values or update notes in nextboot.go definition.
 			return fmt.Errorf("Unsupported type: %T %#v", val, val)
 		}
 		// Due to the above, all types be strings.
@@ -193,8 +208,8 @@ func (c *Config) evaluateEnv() error {
 	return nil
 }
 
-// evaluateCommands normalies the underlying Commands types, converting
-// every element to []string.
+// evaluateCommands normalizes the underlying Commands types, converting
+// every element to []interface{}.
 func (c *Config) evaluateCommands() error {
 	// Run in two passes.
 	// 1. split all strings into []interface{}, the default type used
@@ -255,7 +270,19 @@ func stringToInterfaceArray(a []string) []interface{} {
 	return s
 }
 
-func (c *Config) evaluateAsTemplate(value string, flags int) (string, error) {
+// evaluateAsTemplate accepts a value string that is evaluated as a Go template.
+// The template may reference elements from Config.
+//
+// Kargs values are always accessible using the kargs template function:
+//
+//     {{kargs `keyname`}}
+//
+// Optionally, V1.Vars and V1.Files are accessible with the appropriate flags,
+// using dot notation. For example:
+//
+//     {{.vars.keyname}}
+//     {{.files.keyname.name}}
+func (c *Config) evaluateAsTemplate(value string, flags uint32) (string, error) {
 	var t *template.Template
 	// Construct the "func map" for the custom `kargs` template function.
 	kmap := template.FuncMap{
@@ -269,10 +296,10 @@ func (c *Config) evaluateAsTemplate(value string, flags int) (string, error) {
 	}
 	// Allocate an empty namespace map, and conditionally set vars and files.
 	ns := map[string]interface{}{}
-	if flags&useVars > 0 {
+	if flags&useVars != 0 {
 		ns["vars"] = c.V1.Vars
 	}
-	if flags&useFiles > 0 {
+	if flags&useFiles != 0 {
 		ns["files"] = c.V1.Files
 	}
 	// Execute the template, saving the result in the bytes buffer.

@@ -575,6 +575,28 @@ func TestConfig_runCommands(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "success-weird-variable-set-in-env",
+			v1: &V1{
+				Env: map[string]string{
+					"SET_ONLY_DURING_COMMAND": "set",
+				},
+				Commands: []interface{}{
+					"bash -c 'test -n \"$SET_ONLY_DURING_COMMAND\"'",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "success-weird-variable--unset-from-restored-env",
+			v1: &V1{
+				// $SET_ONLY_DURING_COMMAND should have been deleted.
+				Commands: []interface{}{
+					"bash -c 'test -z \"$SET_ONLY_DURING_COMMAND\"'",
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

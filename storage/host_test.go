@@ -25,7 +25,7 @@ func TestHostString(t *testing.T) {
 	hostExpected := `{
     "Name": "mlab1.iad1t.measurement-lab.org",
     "IPAddress": "165.117.240.9",
-    "Stage2ScriptName": "https://storage.googleapis.com/epoxy-boot-server/stage2/stage2.ipxe",
+    "Stage1to2ScriptName": "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
     "NextStageEnabled": false,
     "NextStageScriptName": "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
     "DefaultScriptName": "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
@@ -58,7 +58,7 @@ func TestHostString(t *testing.T) {
 	h := Host{
 		Name:                "mlab1.iad1t.measurement-lab.org",
 		IPAddress:           "165.117.240.9",
-		Stage2ScriptName:    "https://storage.googleapis.com/epoxy-boot-server/stage2/stage2.ipxe",
+		Stage1to2ScriptName: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
 		NextStageScriptName: "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
 		DefaultScriptName:   "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
 		CurrentSessionIDs: SessionIDs{

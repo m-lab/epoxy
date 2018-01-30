@@ -25,29 +25,29 @@ import (
 	"github.com/m-lab/epoxy/storage"
 )
 
-// stage2IpxeTemplate is a template for executing the stage2 iPXE script.
-const stage2IpxeTemplate = `#!ipxe
+// stage1IpxeTemplate is a template for executing the stage1 iPXE script.
+const stage1IpxeTemplate = `#!ipxe
 
-set stage2_url {{ .Stage2ScriptName }}
+set stage1to2_url {{ .Stage1to2ScriptName }}
 set nextstage_url {{ .NextStageURL }}
 set beginstage_url {{ .BeginStageURL }}
 set endstage_url {{ .EndStageURL }}
 
-chain ${stage2_url}
+chain ${stage1to2_url}
 `
 
-// FormatStage2IPXEScript generates a stage2 iPXE boot script using values from Host.
-func FormatStage2IPXEScript(h *storage.Host, serverAddr string) (script string, err error) {
+// FormatStage1IPXEScript generates a stage1 iPXE boot script using values from Host.
+func FormatStage1IPXEScript(h *storage.Host, serverAddr string) (script string, err error) {
 	var b bytes.Buffer
 
-	t, err := template.New("stage2").Parse(stage2IpxeTemplate)
+	t, err := template.New("stage1").Parse(stage1IpxeTemplate)
 	if err != nil {
 		return "", err
 	}
 
 	// Prepare a map
 	vals := make(map[string]string)
-	vals["Stage2ScriptName"] = h.Stage2ScriptName
+	vals["Stage1to2ScriptName"] = h.Stage1to2ScriptName
 	vals["NextStageURL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/nextstage.json",
 		serverAddr, h.Name, h.CurrentSessionIDs.NextStageID)
 	vals["BeginStageURL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/beginstage",

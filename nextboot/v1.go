@@ -133,25 +133,26 @@ func (c *Config) runCommands(dryrun bool) error {
 			// Comments are zero length.
 			continue
 		}
+		// Print command in a copy/paste-able form.
+		log.Printf("Command: \"%s\"", strings.Join(args, `" "`))
+		if dryrun {
+			continue
+		}
 		// TODO: make timeout a parameter.
 		// Note: after ctx timeout, command receives SIGKILL.
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Hour)
 		defer cancel()
 
-		// Print command in a copy/paste-able form.
-		log.Printf("Command: \"%s\"", strings.Join(args, `" "`))
-		if !dryrun {
-			// cmd inherits the current process environment.
-			cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+		// cmd inherits the current process environment.
+		cmd := exec.CommandContext(ctx, args[0], args[1:]...)
 
-			// Use the current stdout and stderr for subcommands.
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
+		// Use the current stdout and stderr for subcommands.
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 
-			if err := cmd.Run(); err != nil {
-				// Report error with the command args and error.
-				return fmt.Errorf("%q : %v", args, err)
-			}
+		if err := cmd.Run(); err != nil {
+			// Report error with the command args and error.
+			return fmt.Errorf("%q : %v", args, err)
 		}
 	}
 	return nil
@@ -229,7 +230,7 @@ func (c *Config) evaluateFiles(dryrun bool) error {
 
 		// TODO: make timeout a parameter.
 		if !dryrun {
-			err = fileDownload(tmpfile.Name(), url, urlspec["csum"], 2*time.Hour)
+			err = fileDownload(tmpfile.Name(), url, urlspec, 2*time.Hour)
 			if err != nil {
 				os.Remove(tmpfile.Name())
 				return err
@@ -386,11 +387,9 @@ func (c *Config) loadAction(source, method string) error {
 		// Note: this will typically be a simple file download from GCS.
 		file, err = getDownload(source, 10*time.Minute)
 		body = file
-		defer func() {
-			if file != nil {
-				os.Remove(file.Name())
-			}
-		}()
+		if file != nil {
+			defer os.Remove(file.Name())
+		}
 	}
 	if err != nil {
 		return err
@@ -414,7 +413,7 @@ func getDownload(source string, timeout time.Duration) (*os.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = fileDownload(tmpfile.Name(), source, "", timeout)
+	err = fileDownload(tmpfile.Name(), source, nil, timeout)
 	if err != nil {
 		os.Remove(tmpfile.Name())
 		return nil, err
@@ -437,6 +436,9 @@ func postDownload(source string, values url.Values, timeout time.Duration) (io.R
 
 func watchDownload(resp *grab.Response, update time.Duration) {
 	// Update message every few seconds.
+	if update < time.Second {
+		update = time.Second
+	}
 	tick := time.NewTicker(update)
 	defer tick.Stop()
 
@@ -459,8 +461,7 @@ func watchDownload(resp *grab.Response, update time.Duration) {
 	}
 }
 
-func fileDownload(dest, source, csum string, timeout time.Duration) error {
-	// Create client.
+func fileDownload(dest, source string, urlspec map[string]string, timeout time.Duration) error {
 	client := grab.NewClient()
 	req, err := grab.NewRequest(dest, source)
 	if err != nil {
@@ -473,12 +474,12 @@ func fileDownload(dest, source, csum string, timeout time.Duration) error {
 		req = req.WithContext(ctx)
 	}
 
-	if csum != "" {
-		sum, err := hex.DecodeString(csum)
+	if checksum, ok := urlspec["sha256"]; ok {
+		rawSum, err := hex.DecodeString(checksum)
 		if err != nil {
 			return err
 		}
-		req.SetChecksum(sha256.New(), sum, true)
+		req.SetChecksum(sha256.New(), rawSum, true)
 	}
 
 	// Start download.

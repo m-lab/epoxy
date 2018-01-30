@@ -1,6 +1,7 @@
 package nextboot
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -10,13 +11,23 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"strings"
+	"text/template"
 	"time"
+
+	"github.com/google/shlex"
 )
 
 var (
 	// ErrActionURLNotFound is returned when the Kargs key is missing.
 	ErrActionURLNotFound = errors.New("Action URL key not found")
+)
+
+// useVars and useFiles are flags for evaluating templates.
+const (
+	useVars uint32 = 1 << iota
+	useFiles
 )
 
 // ParseCmdline parses the contents of `cmdline` as kernel parameters to
@@ -84,10 +95,223 @@ func (c *Config) maybeLoadChain() error {
 }
 
 func (c *Config) runCommands() error {
-	// TODO: implement var, files, env, and commands template evaluation
-	// and command execution.
-	log.Println(c.String())
+	err := c.evaluateVars()
+	if err != nil {
+		return err
+	}
+	err = c.evaluateFiles()
+	if err != nil {
+		return err
+	}
+	err = c.evaluateEnv()
+	if err != nil {
+		return err
+	}
+	err = c.evaluateCommands()
+	if err != nil {
+		return err
+	}
+
+	// Update, backup, and restore the current process environment. updateCurrentEnv
+	// is necessary to use user-specified PATH for command lookup and avoid more
+	// complex fork/exec steps.
+	changed, added := updateCurrentEnv(c.V1.Env, map[string]string{})
+	defer updateCurrentEnv(changed, added)
+
+	for _, fields := range c.V1.Commands {
+		// Convert the native Commands []interface{} type to []string.
+		args := interfaceToStringArray(fields)
+		if len(args) == 0 {
+			// Comments are zero length.
+			continue
+		}
+		// TODO: make timeout a parameter.
+		// Note: after ctx timeout, command receives SIGKILL.
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Hour)
+		defer cancel()
+
+		// cmd inherits the current process environment.
+		cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+
+		// Use the current stdout and stderr for subcommands.
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		if err := cmd.Run(); err != nil {
+			// Report error with the command args and error.
+			return fmt.Errorf("%q : %v", args, err)
+		}
+	}
 	return nil
+}
+
+// updateCurrentEnv sets variables from setenv in the current process
+// environment, deletes variables in delenv, and returns two maps indicating
+// whether variables where "changed" or "added" to the env. To restore the
+// environment, call updateCurrentEnv again with those return values.
+func updateCurrentEnv(setenv, delenv map[string]string) (map[string]string, map[string]string) {
+	changed := map[string]string{}
+	added := map[string]string{}
+	// Unset all values in delenv that were previously "not found".
+	for key := range delenv {
+		os.Unsetenv(key)
+	}
+	for key, val := range setenv {
+		// Lookup the current value of key from environment.
+		orig, found := os.LookupEnv(key)
+		// Record whether this is a value we're changing or adding.
+		if found {
+			changed[key] = orig
+		} else {
+			added[key] = ""
+		}
+		// Set the new value.
+		os.Setenv(key, val)
+	}
+	return changed, added
+}
+
+func (c *Config) evaluateVars() error {
+	// In a single pass, convert each element to a string.
+	for key, value := range c.V1.Vars {
+		switch val := value.(type) {
+		case []interface{}:
+			// Reconstruct a single string from an array of strings.
+			c.V1.Vars[key] = strings.Join(interfaceToStringArray(val), " ")
+		case string:
+			// No-op, this is good as-is.
+		default:
+			// TODO: either ignore these values or update notes in nextboot.go definition.
+			return fmt.Errorf("Unsupported type: %T %#v", val, val)
+		}
+		// Due to the above, all types be strings.
+		sval, err := c.evaluateAsTemplate(c.V1.Vars[key].(string), 0)
+		if err != nil {
+			return err
+		}
+		// Replace with the new value.
+		c.V1.Vars[key] = sval
+	}
+	return nil
+}
+
+func (c *Config) evaluateFiles() error {
+	// TODO: implement large file download.
+	return nil
+}
+
+func (c *Config) evaluateEnv() error {
+	for key, val := range c.V1.Env {
+		s, err := c.evaluateAsTemplate(val, useVars|useFiles)
+		if err != nil {
+			return err
+		}
+		c.V1.Env[key] = s
+	}
+	return nil
+}
+
+// evaluateCommands normalizes the underlying Commands types, converting
+// every element to []interface{}.
+func (c *Config) evaluateCommands() error {
+	// Run in two passes.
+	// 1. split all strings into []interface{}, the default type used
+	// by JSON Unmarshal for array types.
+	for i, value := range c.V1.Commands {
+		switch cmdTmpl := value.(type) {
+		case string:
+			// To support kargs we must evaluate the template before splitting.
+			cmd, err := c.evaluateAsTemplate(cmdTmpl, useVars|useFiles)
+			if err != nil {
+				return err
+			}
+			// Note: shlex.Split returns an empty list for comments.
+			args, err := shlex.Split(cmd)
+			if err != nil {
+				// Split may fail due to incomplete quotes.
+				return err
+			}
+			// Convert []string to []interface{}.
+			c.V1.Commands[i] = stringToInterfaceArray(args)
+		}
+	}
+	// 2. Now every element of Commands is an []interface{}. Evaluate every
+	// element of every []interface{} as a template.
+	for _, value := range c.V1.Commands {
+		switch args := value.(type) {
+		case []interface{}:
+			for i, argTmpl := range args {
+				arg, err := c.evaluateAsTemplate(fmt.Sprint(argTmpl), useVars|useFiles)
+				if err != nil {
+					return err
+				}
+				args[i] = arg
+			}
+		}
+	}
+	return nil
+}
+
+func interfaceToStringArray(array interface{}) []string {
+	a, ok := array.([]interface{})
+	if !ok {
+		// Ignore invalid types.
+		return []string{}
+	}
+	s := make([]string, len(a))
+	for i, v := range a {
+		s[i] = fmt.Sprint(v)
+	}
+	return s
+}
+
+func stringToInterfaceArray(a []string) []interface{} {
+	s := make([]interface{}, len(a))
+	for i, v := range a {
+		s[i] = fmt.Sprint(v)
+	}
+	return s
+}
+
+// evaluateAsTemplate accepts a value string that is evaluated as a Go template.
+// The template may reference elements from Config.
+//
+// Kargs values are always accessible using the kargs template function:
+//
+//     {{kargs `keyname`}}
+//
+// Optionally, V1.Vars and V1.Files are accessible with the appropriate flags,
+// using dot notation. For example:
+//
+//     {{.vars.keyname}}
+//     {{.files.keyname.name}}
+func (c *Config) evaluateAsTemplate(value string, flags uint32) (string, error) {
+	var t *template.Template
+	// Construct the "func map" for the custom `kargs` template function.
+	kmap := template.FuncMap{
+		"kargs": func(s string) string {
+			return c.Kargs[s]
+		},
+	}
+	t, err := template.New("tmpl").Funcs(kmap).Parse(value)
+	if err != nil {
+		return "", err
+	}
+	// Allocate an empty namespace map, and conditionally set vars and files.
+	ns := map[string]interface{}{}
+	if flags&useVars != 0 {
+		ns["vars"] = c.V1.Vars
+	}
+	if flags&useFiles != 0 {
+		ns["files"] = c.V1.Files
+	}
+	// Execute the template, saving the result in the bytes buffer.
+	var b bytes.Buffer
+	err = t.Execute(&b, ns)
+	if err != nil {
+		return "", err
+	}
+	return b.String(), nil
 }
 
 func (c *Config) loadAction(source, method string) error {

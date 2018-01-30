@@ -46,26 +46,26 @@ func (f fakeConfig) Load(name string) (*storage.Host, error) {
 	return h, nil
 }
 
-// TestGenerateStage2IPXE performs an integration test with an httptest server and a
+// TestGenerateStage1IPXE performs an integration test with an httptest server and a
 // fakeConfig providing Host storage.
-func TestGenerateStage2IPXE(t *testing.T) {
+func TestGenerateStage1IPXE(t *testing.T) {
 	// Setup fake server.
 	h := &storage.Host{
-		Name:             "mlab1.iad1t.measurement-lab.org",
-		IPAddress:        "165.117.240.9",
-		Stage2ScriptName: "https://storage.googleapis.com/epoxy-boot-server/stage2/stage2.ipxe",
+		Name:                "mlab1.iad1t.measurement-lab.org",
+		IPAddress:           "165.117.240.9",
+		Stage1to2ScriptName: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
 	}
 	env := &Env{fakeConfig{h}, "example.com:4321"}
 	router := mux.NewRouter()
 	router.Methods("POST").
-		Path("/v1/boot/{hostname}/stage2.ipxe").
-		Handler(Handler{env, GenerateStage2IPXE})
+		Path("/v1/boot/{hostname}/stage1.ipxe").
+		Handler(Handler{env, GenerateStage1IPXE})
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
 	// Run client request.
 	vals := url.Values{}
-	u := ts.URL + "/v1/boot/mlab1.iad1t.measurement-lab.org/stage2.ipxe"
+	u := ts.URL + "/v1/boot/mlab1.iad1t.measurement-lab.org/stage1.ipxe"
 
 	resp, err := http.PostForm(u, vals)
 	if err != nil {
@@ -106,7 +106,7 @@ func TestGenerateStage2IPXE(t *testing.T) {
 		host        string
 		partialPath string
 	}{
-		{"stage2_url", "storage.googleapis.com", "epoxy-boot-server/stage2/stage2.ipxe"},
+		{"stage1_url", "storage.googleapis.com", "epoxy-boot-server/stage1to2/stage1to2.ipxe"},
 		{"nextstage_url", "example.com:4321", h.CurrentSessionIDs.NextStageID},
 		{"beginstage_url", "example.com:4321", h.CurrentSessionIDs.BeginStageID},
 		{"endstage_url", "example.com:4321", h.CurrentSessionIDs.EndStageID},

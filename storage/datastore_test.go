@@ -83,9 +83,9 @@ func (f *errDatastoreClient) GetAll(ctx context.Context, q *datastore.Query, dst
 func TestDatastore(t *testing.T) {
 	// NB: we store a partial Host record for brevity.
 	h := Host{
-		Name:             "mlab1.iad1t.measurement-lab.org",
-		IPAddress:        "165.117.240.9",
-		Stage2ScriptName: "https://example.com/path/stage2/stage2.ipxe",
+		Name:                "mlab1.iad1t.measurement-lab.org",
+		IPAddress:           "165.117.240.9",
+		Stage1to2ScriptName: "https://example.com/path/stage1to2/stage1to2.ipxe",
 		CurrentSessionIDs: SessionIDs{
 			NextStageID: "01234",
 		},
@@ -125,9 +125,9 @@ func TestDatastore(t *testing.T) {
 func TestDatastoreFailures(t *testing.T) {
 	// NB: we store a partial Host record for brevity.
 	h := Host{
-		Name:             "mlab1.iad1t.measurement-lab.org",
-		IPAddress:        "165.117.240.9",
-		Stage2ScriptName: "https://example.com/path/stage2/stage2.ipxe",
+		Name:                "mlab1.iad1t.measurement-lab.org",
+		IPAddress:           "165.117.240.9",
+		Stage1to2ScriptName: "https://example.com/path/stage1to2/stage1to2.ipxe",
 		CurrentSessionIDs: SessionIDs{
 			NextStageID: "01234",
 		},

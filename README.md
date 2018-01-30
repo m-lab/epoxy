@@ -45,9 +45,9 @@ simulate a client request using `curl`.
 
     SERVER=localhost:8080
     curl --dump-header - --location -XPOST --data-binary "{}" \
-        https://${SERVER}/v1/boot/mlab4.iad1t.measurement-lab.org/stage2.ipxe
+        https://${SERVER}/v1/boot/mlab4.iad1t.measurement-lab.org/stage1.ipxe
 
-If the host record is found in Datastore, then a stage2 boot script should be
+If the host record is found in Datastore, then a stage1 boot script should be
 returned. If the host record is not found, then:
 
     TODO(soltesz): handle 404 cases with a valid ipxe script.

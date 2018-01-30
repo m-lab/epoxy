@@ -115,8 +115,8 @@ func (c *Config) runCommands() error {
 	// Update, backup, and restore the current process environment. updateCurrentEnv
 	// is necessary to use user-specified PATH for command lookup and avoid more
 	// complex fork/exec steps.
-	backupEnv, present := updateCurrentEnv(c.V1.Env, map[string]bool{})
-	defer updateCurrentEnv(backupEnv, present)
+	changed, added := updateCurrentEnv(c.V1.Env, map[string]string{})
+	defer updateCurrentEnv(changed, added)
 
 	for _, fields := range c.V1.Commands {
 		// Convert the native Commands []interface{} type to []string.
@@ -146,26 +146,29 @@ func (c *Config) runCommands() error {
 }
 
 // updateCurrentEnv sets variables from setenv in the current process
-// environment and returns a backup of the original values with a map indicating
-// whether the key was originally in the environment for deletion on restoration.
-func updateCurrentEnv(setenv map[string]string, delenv map[string]bool) (map[string]string, map[string]bool) {
-	saveenv := map[string]string{}
-	present := map[string]bool{}
+// environment, deletes variables in delenv, and returns two maps indicating
+// whether variables where "changed" or "added" to the env. To restore the
+// environment, call updateCurrentEnv again with those return values.
+func updateCurrentEnv(setenv, delenv map[string]string) (map[string]string, map[string]string) {
+	changed := map[string]string{}
+	added := map[string]string{}
+	// Unset all values in delenv that were previously "not found".
+	for key := range delenv {
+		os.Unsetenv(key)
+	}
 	for key, val := range setenv {
 		// Lookup the current value of key from environment.
 		orig, found := os.LookupEnv(key)
-		// Save whether key was originally present, and the original value (or empty
-		// string if it wasn't).
-		present[key] = found
-		saveenv[key] = orig
+		// Record whether this is a value we're changing or adding.
+		if found {
+			changed[key] = orig
+		} else {
+			added[key] = ""
+		}
 		// Set the new value.
 		os.Setenv(key, val)
-		// If the key is present in delenv, and was previously not found, unset it.
-		if found, ok := delenv[key]; ok && !found {
-			os.Unsetenv(key)
-		}
 	}
-	return saveenv, present
+	return changed, added
 }
 
 func (c *Config) evaluateVars() error {

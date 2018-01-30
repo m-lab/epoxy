@@ -718,7 +718,7 @@ func Test_fileDownload(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		csum      string
+		urlspec   map[string]string
 		delay     time.Duration
 		timeout   time.Duration
 		urlPrefix string
@@ -728,8 +728,8 @@ func Test_fileDownload(t *testing.T) {
 			name: "successful-without-checksum",
 		},
 		{
-			name: "successful-checksum",
-			csum: csum,
+			name:    "successful-checksum",
+			urlspec: map[string]string{"sha256": csum},
 		},
 		{
 			// Before sending response, wait 3x the timeout.
@@ -741,7 +741,7 @@ func Test_fileDownload(t *testing.T) {
 		{
 			// csum should contain an invalid character, "-".
 			name:    "bad-checksum",
-			csum:    "bad-" + csum[4:],
+			urlspec: map[string]string{"sha256": "bad-" + csum[4:]},
 			wantErr: true,
 		},
 		{
@@ -766,7 +766,7 @@ func Test_fileDownload(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = fileDownload(tmpfile.Name(), tt.urlPrefix+tsGet.URL, tt.csum, tt.timeout)
+			err = fileDownload(tmpfile.Name(), tt.urlPrefix+tsGet.URL, tt.urlspec, tt.timeout)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("fileDownload() error = %v, wantErr %v", err, tt.wantErr)
 			}

@@ -23,7 +23,7 @@ var (
 		"Execute the config loaded from the URL in this kernel parameter.")
 	report = flag.String("report", "epoxy.report",
 		"Report success or errors with the URL in this kernel parameter.")
-	dryrun = flag.Bool("dry-run", false,
+	dryrun = flag.Bool("dryrun", false,
 		"Request all configs but do not run commands. May change state in the ePoxy server.")
 )
 
@@ -57,7 +57,7 @@ func main() {
 	// TODO: log the evaluate state of c.V1 -- helpful especially for errors.
 	values.Set("message", result)
 
-	err = c.Report(*report, values)
+	err = c.Report(*report, values, *dryrun)
 	if err != nil {
 		log.Fatal(err)
 	}

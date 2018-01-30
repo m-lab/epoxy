@@ -37,6 +37,9 @@ const (
 	useFiles
 )
 
+// largeTimeout sets an upper limit on time taken to run commands or large file downloads.
+const largeTimeout = 2 * time.Hour
+
 // ParseCmdline parses the contents of `cmdline` as kernel parameters to
 // initialize `Kargs`. The current value of Kargs is unconditionally overwritten.
 func (c *Config) ParseCmdline(cmdline string) error {
@@ -107,10 +110,10 @@ func (c *Config) runCommands(dryrun bool) error {
 		return err
 	}
 	err = c.evaluateFiles(dryrun)
+	defer c.cleanupFiles()
 	if err != nil {
 		return err
 	}
-	defer c.cleanupFiles()
 	err = c.evaluateEnv()
 	if err != nil {
 		return err
@@ -130,7 +133,7 @@ func (c *Config) runCommands(dryrun bool) error {
 		// Convert the native Commands []interface{} type to []string.
 		args := interfaceToStringArray(fields)
 		if len(args) == 0 {
-			// Comments are zero length.
+			// shlex.Split on comment strings result in zero length args arrays.
 			continue
 		}
 		// Print command in a copy/paste-able form.
@@ -140,7 +143,7 @@ func (c *Config) runCommands(dryrun bool) error {
 		}
 		// TODO: make timeout a parameter.
 		// Note: after ctx timeout, command receives SIGKILL.
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Hour)
+		ctx, cancel := context.WithTimeout(context.Background(), largeTimeout)
 		defer cancel()
 
 		// cmd inherits the current process environment.
@@ -230,7 +233,7 @@ func (c *Config) evaluateFiles(dryrun bool) error {
 
 		// TODO: make timeout a parameter.
 		if !dryrun {
-			err = fileDownload(tmpfile.Name(), url, urlspec, 2*time.Hour)
+			err = fileDownload(tmpfile.Name(), url, urlspec, largeTimeout)
 			if err != nil {
 				os.Remove(tmpfile.Name())
 				return err

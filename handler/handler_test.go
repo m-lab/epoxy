@@ -106,7 +106,7 @@ func TestGenerateStage1IPXE(t *testing.T) {
 		host        string
 		partialPath string
 	}{
-		{"stage1_url", "storage.googleapis.com", "epoxy-boot-server/stage1to2/stage1to2.ipxe"},
+		{"stage1to2_url", "storage.googleapis.com", "epoxy-boot-server/stage1to2/stage1to2.ipxe"},
 		{"nextstage_url", "example.com:4321", h.CurrentSessionIDs.NextStageID},
 		{"beginstage_url", "example.com:4321", h.CurrentSessionIDs.BeginStageID},
 		{"endstage_url", "example.com:4321", h.CurrentSessionIDs.EndStageID},

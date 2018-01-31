@@ -18,9 +18,10 @@
 // boot server restricts all state-changing requests to administrative users
 // (any machine) and managed machines (only itself).
 //
-// Managed machines progress through three boot stages: 1) local boot media
-// like an iPXE ROM, or an immutable CD image, 2) a minimal, linux-based
-// network boot environment, 3) the final system image.
+// Managed machines progress through three boot stages:
+//   stage1) local boot media like an iPXE ROM, or an immutable CD image
+//   stage2) a minimal, linux-based network boot environment
+//   stage3) the final system image.
 //
 // Managed machines are treated as stateless. So, the ePoxy boot server acts as
 // an external state manager that mediates the transition of successive boot
@@ -92,15 +93,15 @@ func newRouter(env *handler.Env) *mux.Router {
 	// A health checker for running in Docker or AppEngine.
 	addRoute(router, "GET", "/_ah/health", http.HandlerFunc(checkHealth))
 
-	// Stage2 scripts are always the first script fetched by a booting machine.
-	// "stage2.ipxe" is the target for ROM-based iPXE clients.
-	addRoute(router, "POST", "/v1/boot/{hostname}/stage2.ipxe",
-		handler.Handler{env, handler.GenerateStage2IPXE})
+	// Stage1 scripts are always the first script fetched by a booting machine.
+	// "stage1.ipxe" is the target for ROM-based iPXE clients.
+	addRoute(router, "POST", "/v1/boot/{hostname}/stage1.ipxe",
+		handler.Handler{env, handler.GenerateStage1IPXE})
 
 	// TODO(soltesz): add a target for CD-based ePoxy clients.
-	// addRoute(router, "POST", "/v1/boot/{hostname}/stage2.json", generateStage2Json)
+	// addRoute(router, "POST", "/v1/boot/{hostname}/stage1.json", generateStage1Json)
 
-	// Next, begin, and end stage targets load after stage2 runs successfully.
+	// Next, begin, and end stage targets load after stage1 runs successfully.
 	// TODO(soltesz): add targets for next, begin, and end stage targets.
 	// addRoute(router, "POST", "/v1/boot/{hostname}/{sessionId}/nextstage.json", generateNextstage)
 	// addRoute(router, "POST", "/v1/boot/{hostname}/{sessionId}/beginstage", handleBeginStage)

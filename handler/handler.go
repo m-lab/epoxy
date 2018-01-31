@@ -57,8 +57,8 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// GenerateStage2IPXE creates the stage2 iPXE script for booting machines.
-func GenerateStage2IPXE(env *Env, rw http.ResponseWriter, req *http.Request) (int, error) {
+// GenerateStage1IPXE creates the stage1 iPXE script for booting machines.
+func GenerateStage1IPXE(env *Env, rw http.ResponseWriter, req *http.Request) (int, error) {
 	hostname := mux.Vars(req)["hostname"]
 
 	// Use hostname as key to load record from Datastore.
@@ -81,7 +81,7 @@ func GenerateStage2IPXE(env *Env, rw http.ResponseWriter, req *http.Request) (in
 	}
 
 	// Generate iPXE script.
-	script, err := template.FormatStage2IPXEScript(host, env.ServerAddr)
+	script, err := template.FormatStage1IPXEScript(host, env.ServerAddr)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}

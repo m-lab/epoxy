@@ -48,7 +48,7 @@ type CollectedInformation struct {
 	PublicSSHHostKey string
 }
 
-// SessionIDs contains the three session IDs generated when requesting a stage2 target.
+// SessionIDs contains the three session IDs generated when requesting a stage1 target.
 type SessionIDs struct {
 	NextStageID  string // Needed for requesting the nextstage.json target.
 	BeginStageID string // Needed for requesting the begingstage target.
@@ -61,8 +61,8 @@ type Host struct {
 	Name string
 	// IPAddress is the IP address the booting machine will use to connect to the API.
 	IPAddress string
-	// Stage2ScriptName is the absolute URL to a stage2 iPXE script.
-	Stage2ScriptName string
+	// Stage1to2ScriptName is the absolute URL to an iPXE script for booting stage1 to stage2.
+	Stage1to2ScriptName string
 	// NextStageEnabled controls whether ePoxy returns the NextStageScriptName (true)
 	// or DefaultScriptName (false).
 	NextStageEnabled bool

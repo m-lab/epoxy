@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	cmdline = flag.String("cmdline", "/proc/cmdline",
+	flagCmdline = flag.String("cmdline", "/proc/cmdline",
 		"Read kernel cmdline parameters from the contents of this file.")
-	action = flag.String("action", "epoxy.stage2",
+	flagAction = flag.String("action", "epoxy.stage2",
 		"Execute the config loaded from the URL in this kernel parameter.")
-	report = flag.String("report", "epoxy.report",
+	flagReport = flag.String("report", "epoxy.report",
 		"Report success or errors with the URL in this kernel parameter.")
-	dryrun = flag.Bool("dry-run", false,
+	flagDryrun = flag.Bool("dryrun", false,
 		"Request all configs but do not run commands. May change state in the ePoxy server.")
 )
 
@@ -35,15 +35,15 @@ func main() {
 	// failure have occurred. Automatically reboot after 6 hours of failure.
 	c := &nextboot.Config{}
 
-	b, err := ioutil.ReadFile(*cmdline)
+	b, err := ioutil.ReadFile(*flagCmdline)
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Read and parse parameters from *cmdline.
+	// Read and parse parameters from *flagCmdline.
 	c.ParseCmdline(string(b))
 
 	// Run the config loaded from the action URL.
-	err = c.Run(*action, *dryrun)
+	err = c.Run(*flagAction, *flagDryrun)
 	if err != nil {
 		// Define a successful result.
 		result = err.Error()
@@ -57,7 +57,7 @@ func main() {
 	// TODO: log the evaluate state of c.V1 -- helpful especially for errors.
 	values.Set("message", result)
 
-	err = c.Report(*report, values)
+	err = c.Report(*flagReport, values, *flagDryrun)
 	if err != nil {
 		log.Fatal(err)
 	}

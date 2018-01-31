@@ -1,13 +1,17 @@
 package nextboot
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/kr/pretty"
 	"github.com/renstrom/dedent"
@@ -124,7 +128,7 @@ func TestConfig_String(t *testing.T) {
 						"a": "b",
 					},
 					Commands: []interface{}{
-						"/bin/true",
+						"true",
 					},
 				},
 			},
@@ -147,7 +151,7 @@ func TestConfig_String(t *testing.T) {
 				            "a": "b"
 				        },
 				        "commands": [
-				            "/bin/true"
+				            "true"
 				        ]
 				    }
 				}`),
@@ -246,7 +250,7 @@ func TestConfig_Report(t *testing.T) {
 			c := &Config{
 				Kargs: tt.kargs,
 			}
-			if err := c.Report(tt.args.report, tt.args.values); (err != nil) != tt.wantErr {
+			if err := c.Report(tt.args.report, tt.args.values, false); (err != nil) != tt.wantErr {
 				t.Errorf("Config.Report() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -297,7 +301,7 @@ func TestConfig_Run(t *testing.T) {
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(tt.statusGet)
 					// Declare a minimal config with one command.
-					c := &Config{V1: &V1{Commands: []interface{}{"/bin/true okay"}}}
+					c := &Config{V1: &V1{Commands: []interface{}{"true okay"}}}
 					fmt.Fprint(w, c.String())
 				}))
 			tsPost := httptest.NewServer(
@@ -449,11 +453,11 @@ func TestConfig_evaluateCommands(t *testing.T) {
 					"varkey": "varvalue",
 				},
 				Commands: []interface{}{
-					"/bin/true {{.vars.varkey}}",
+					"true {{.vars.varkey}}",
 				},
 			},
 			expValue: []interface{}{
-				[]interface{}{"/bin/true", "varvalue"},
+				[]interface{}{"true", "varvalue"},
 			},
 			wantErr: false,
 		},
@@ -464,11 +468,11 @@ func TestConfig_evaluateCommands(t *testing.T) {
 					"varkey": "varvalue",
 				},
 				Commands: []interface{}{
-					[]interface{}{"/bin/true", "{{.vars.varkey}}"},
+					[]interface{}{"true", "{{.vars.varkey}}"},
 				},
 			},
 			expValue: []interface{}{
-				[]interface{}{"/bin/true", "varvalue"},
+				[]interface{}{"true", "varvalue"},
 			},
 			wantErr: false,
 		},
@@ -476,12 +480,12 @@ func TestConfig_evaluateCommands(t *testing.T) {
 			name: "error-incomplete-quote-in-command",
 			v1: &V1{
 				Commands: []interface{}{
-					"/bin/true 'single quote is incomplete",
+					"true 'single quote is incomplete",
 				},
 			},
 			expValue: []interface{}{
 				// Unchanged.
-				"/bin/true 'single quote is incomplete",
+				"true 'single quote is incomplete",
 			},
 			wantErr: true,
 		},
@@ -489,12 +493,12 @@ func TestConfig_evaluateCommands(t *testing.T) {
 			name: "error-bad-template-in-string-command",
 			v1: &V1{
 				Commands: []interface{}{
-					"/bin/true {{kargs missingquotes}}",
+					"true {{kargs missingquotes}}",
 				},
 			},
 			expValue: []interface{}{
 				// Unchanged.
-				"/bin/true {{kargs missingquotes}}",
+				"true {{kargs missingquotes}}",
 			},
 			wantErr: true,
 		},
@@ -502,12 +506,12 @@ func TestConfig_evaluateCommands(t *testing.T) {
 			name: "error-bad-template-in-array-command",
 			v1: &V1{
 				Commands: []interface{}{
-					[]interface{}{"/bin/true", "{{kargs missingquotes}}"},
+					[]interface{}{"true", "{{kargs missingquotes}}"},
 				},
 			},
 			expValue: []interface{}{
 				// Unchanged.
-				[]interface{}{"/bin/true", "{{kargs missingquotes}}"},
+				[]interface{}{"true", "{{kargs missingquotes}}"},
 			},
 			wantErr: true,
 		},
@@ -539,7 +543,7 @@ func TestConfig_runCommands(t *testing.T) {
 			v1: &V1{
 				Commands: []interface{}{
 					"# This is a comment!",
-					"/bin/true",
+					"true",
 					"# So is this!",
 				},
 			},
@@ -603,9 +607,171 @@ func TestConfig_runCommands(t *testing.T) {
 			c := &Config{
 				V1: tt.v1,
 			}
-			if err := c.runCommands(); (err != nil) != tt.wantErr {
+			if err := c.runCommands(false); (err != nil) != tt.wantErr {
 				t.Errorf("Config.runCommands() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestConfig_evaluateAndDownloadFiles(t *testing.T) {
+	tests := []struct {
+		name      string
+		kargs     map[string]string
+		files     map[string]map[string]string
+		expValue  string
+		statusGet int
+		wantErr   bool
+	}{
+		{
+			name:      "success-template-replace-vars",
+			expValue:  "",
+			statusGet: http.StatusOK,
+			files: map[string]map[string]string{
+				"initram": map[string]string{
+					"url": "{{.vars.testurl}}",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:      "error-url-missing",
+			expValue:  "",
+			statusGet: http.StatusOK,
+			files: map[string]map[string]string{
+				"initram": map[string]string{
+					"missing-url-key": "",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:      "error-url-download-fails",
+			expValue:  "",
+			statusGet: http.StatusNotFound,
+			files: map[string]map[string]string{
+				"initram": map[string]string{
+					"url": "{{.vars.testurl}}",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:      "error-template-evaluation-fails",
+			expValue:  "{{kargs missingqoute}}",
+			statusGet: http.StatusOK,
+			files: map[string]map[string]string{
+				"initram": map[string]string{
+					"url": "{{kargs missingqoute}}",
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		tsGet := httptest.NewServer(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				c := &Config{V1: &V1{Commands: []interface{}{"true okay"}}}
+				w.Header().Set("Content-Length", fmt.Sprint(len(c.String())))
+				w.WriteHeader(tt.statusGet)
+				if r.Method == http.MethodHead {
+					return
+				}
+				fmt.Fprint(w, c.String())
+			}))
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Config{
+				Kargs: tt.kargs,
+				V1: &V1{
+					Vars: map[string]interface{}{
+						"testurl": tsGet.URL,
+					},
+					Files: tt.files,
+					Commands: []interface{}{
+						"true",
+					},
+				},
+			}
+			if _, ok := c.V1.Files["initram"]["url"]; ok {
+				//	c.V1.Files["initram"]["url"] = tsGet.URL
+				if tt.expValue == "" {
+					tt.expValue = tsGet.URL
+				}
+			}
+			err := c.evaluateAndDownloadFiles(false)
+			if (err != nil) != tt.wantErr || tt.expValue != c.V1.Files["initram"]["url"] {
+				t.Errorf("Config.evaluateAndDownloadFiles() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Config.evaluateAndDownloadFiles() got = %q, want %q",
+					tt.expValue, c.V1.Files["initram"]["url"])
+			}
+			c.cleanupFiles()
+		})
+		tsGet.Close()
+	}
+}
+
+func Test_fileDownload(t *testing.T) {
+	c := &Config{V1: &V1{Commands: []interface{}{"true okay"}}}
+	msg := c.String()
+	sum := sha256.Sum256([]byte(msg))
+	csum := hex.EncodeToString(sum[:])
+
+	tests := []struct {
+		name      string
+		urlspec   map[string]string
+		delay     time.Duration
+		timeout   time.Duration
+		urlPrefix string
+		wantErr   bool
+	}{
+		{
+			name: "successful-without-checksum",
+		},
+		{
+			name:    "successful-checksum",
+			urlspec: map[string]string{"sha256": csum},
+		},
+		{
+			// Before sending response, wait 3x the timeout.
+			name:    "bad-timeout",
+			delay:   300 * time.Millisecond,
+			timeout: 100 * time.Millisecond,
+			wantErr: true,
+		},
+		{
+			// csum should contain an invalid character, "-".
+			name:    "bad-checksum",
+			urlspec: map[string]string{"sha256": "bad-" + csum[4:]},
+			wantErr: true,
+		},
+		{
+			name:      "bad-url",
+			urlPrefix: ":",
+			wantErr:   true,
+		},
+	}
+	for _, tt := range tests {
+		tsGet := httptest.NewServer(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Length", fmt.Sprint(len(msg)))
+				w.WriteHeader(http.StatusOK)
+				if r.Method == http.MethodHead {
+					return
+				}
+				time.Sleep(tt.delay)
+				fmt.Fprint(w, msg)
+			}))
+		t.Run(tt.name, func(t *testing.T) {
+			tmpfile, err := ioutil.TempFile("", tt.name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = fileDownload(tmpfile.Name(), tt.urlPrefix+tsGet.URL, tt.urlspec, tt.timeout)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("fileDownload() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			os.Remove(tmpfile.Name())
+		})
+		tsGet.Close()
 	}
 }

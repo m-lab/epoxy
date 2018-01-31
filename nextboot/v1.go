@@ -3,10 +3,13 @@ package nextboot
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -16,12 +19,16 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/cavaliercoder/grab"
 	"github.com/google/shlex"
 )
 
 var (
 	// ErrActionURLNotFound is returned when the Kargs key is missing.
 	ErrActionURLNotFound = errors.New("Action URL key not found")
+
+	// ErrFileURLNotFound is returned with a file spec does not include a "url" key.
+	ErrFileURLNotFound = errors.New("URL key not found in file spec")
 )
 
 // useVars and useFiles are flags for evaluating templates.
@@ -29,6 +36,9 @@ const (
 	useVars uint32 = 1 << iota
 	useFiles
 )
+
+// largeTimeout sets an upper limit on time taken to run commands or large file downloads.
+const largeTimeout = 2 * time.Hour
 
 // ParseCmdline parses the contents of `cmdline` as kernel parameters to
 // initialize `Kargs`. The current value of Kargs is unconditionally overwritten.
@@ -79,7 +89,7 @@ func (c *Config) Run(action string, dryrun bool) error {
 	}
 	// There is no Chain URL, so attempt to run Commands.
 	log.Println("Running commands")
-	return c.runCommands()
+	return c.runCommands(dryrun)
 }
 
 func (c *Config) maybeLoadChain() error {
@@ -94,12 +104,13 @@ func (c *Config) maybeLoadChain() error {
 	return nil
 }
 
-func (c *Config) runCommands() error {
+func (c *Config) runCommands(dryrun bool) error {
 	err := c.evaluateVars()
 	if err != nil {
 		return err
 	}
-	err = c.evaluateFiles()
+	err = c.evaluateAndDownloadFiles(dryrun)
+	defer c.cleanupFiles()
 	if err != nil {
 		return err
 	}
@@ -122,12 +133,17 @@ func (c *Config) runCommands() error {
 		// Convert the native Commands []interface{} type to []string.
 		args := interfaceToStringArray(fields)
 		if len(args) == 0 {
-			// Comments are zero length.
+			// shlex.Split on comment strings result in zero length args arrays.
+			continue
+		}
+		// Print command in a copy/paste-able form.
+		log.Printf("Command: \"%s\"", strings.Join(args, `" "`))
+		if dryrun {
 			continue
 		}
 		// TODO: make timeout a parameter.
 		// Note: after ctx timeout, command receives SIGKILL.
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Hour)
+		ctx, cancel := context.WithTimeout(context.Background(), largeTimeout)
 		defer cancel()
 
 		// cmd inherits the current process environment.
@@ -195,9 +211,51 @@ func (c *Config) evaluateVars() error {
 	return nil
 }
 
-func (c *Config) evaluateFiles() error {
-	// TODO: implement large file download.
+// TODO: separate these operations to allow user-provided "names".
+func (c *Config) evaluateAndDownloadFiles(dryrun bool) error {
+	for name, urlspec := range c.V1.Files {
+		url, ok := urlspec["url"]
+		if !ok {
+			return ErrFileURLNotFound
+		}
+		url, err := c.evaluateAsTemplate(url, useVars)
+		if err != nil {
+			return err
+		}
+		// Update spec with evaluated URL.
+		urlspec["url"] = url
+
+		// Create a tempfile for saving file locally.
+		tmpfile, err := ioutil.TempFile("", name+"-")
+		if err != nil {
+			return err
+		}
+		tmpfile.Close()
+
+		// TODO: make timeout a parameter.
+		if !dryrun {
+			err = fileDownload(tmpfile.Name(), url, urlspec, largeTimeout)
+			if err != nil {
+				os.Remove(tmpfile.Name())
+				return err
+			}
+		}
+
+		// Update the Files map with local file name.
+		c.V1.Files[name]["name"] = tmpfile.Name()
+	}
 	return nil
+}
+
+func (c *Config) cleanupFiles() {
+	for _, urlspec := range c.V1.Files {
+		// Remove local files once we no longer need them.
+		if fname, ok := urlspec["name"]; ok {
+			log.Printf("Removing tmpfile: %s", fname)
+			os.Remove(fname)
+		}
+	}
+	return
 }
 
 func (c *Config) evaluateEnv() error {
@@ -317,6 +375,7 @@ func (c *Config) evaluateAsTemplate(value string, flags uint32) (string, error) 
 func (c *Config) loadAction(source, method string) error {
 	var err error
 	var body io.ReadCloser
+	var file *os.File
 	switch {
 	case strings.HasPrefix(source, "file://"):
 		// Useful for testing and possibly stage1 legacy boot CDs.
@@ -330,7 +389,11 @@ func (c *Config) loadAction(source, method string) error {
 	case method == "GET":
 		// TODO: make timeout configurable.
 		// Note: this will typically be a simple file download from GCS.
-		body, err = getDownload(source, 10*time.Minute)
+		file, err = getDownload(source, 10*time.Minute)
+		body = file
+		if file != nil {
+			defer os.Remove(file.Name())
+		}
 	}
 	if err != nil {
 		return err
@@ -348,18 +411,18 @@ func (c *Config) loadAction(source, method string) error {
 	return nil
 }
 
-func getDownload(source string, timeout time.Duration) (io.ReadCloser, error) {
-	// TODO: implement a reliable, large file download.
-	// TODO: use timeout.
-	client := &http.Client{}
-	resp, err := client.Get(source)
+func getDownload(source string, timeout time.Duration) (*os.File, error) {
+	// Create a tempfile for saving file locally.
+	tmpfile, err := ioutil.TempFile("", "getdownload-")
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("Bad status code: got %d, expected 200 code", resp.StatusCode)
+	err = fileDownload(tmpfile.Name(), source, nil, timeout)
+	if err != nil {
+		os.Remove(tmpfile.Name())
+		return nil, err
 	}
-	return resp.Body, nil
+	return tmpfile, nil
 }
 
 func postDownload(source string, values url.Values, timeout time.Duration) (io.ReadCloser, error) {
@@ -375,23 +438,92 @@ func postDownload(source string, values url.Values, timeout time.Duration) (io.R
 	return resp.Body, nil
 }
 
+func watchDownload(resp *grab.Response, update time.Duration) {
+	// Update message every few seconds.
+	if update < time.Second {
+		update = time.Second
+	}
+	tick := time.NewTicker(update)
+	defer tick.Stop()
+
+	lastCount := resp.BytesComplete()
+	for {
+		select {
+		case <-tick.C:
+			current := resp.BytesComplete()
+			log.Printf("  transferred %v / %v bytes (%.2f%%) at %.2f Mbps",
+				current,
+				resp.Size,
+				100*resp.Progress(),
+				float64(current-lastCount)/1.0e6/float64(update/time.Second))
+			lastCount = current
+
+		case <-resp.Done:
+			// Download has stopped. Check resp.Err() for possible errors.
+			return
+		}
+	}
+}
+
+func fileDownload(dest, source string, urlspec map[string]string, timeout time.Duration) error {
+	client := grab.NewClient()
+	req, err := grab.NewRequest(dest, source)
+	if err != nil {
+		return err
+	}
+
+	if timeout > 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		req = req.WithContext(ctx)
+	}
+
+	if checksum, ok := urlspec["sha256"]; ok {
+		rawSum, err := hex.DecodeString(checksum)
+		if err != nil {
+			return err
+		}
+		req.SetChecksum(sha256.New(), rawSum, true)
+	}
+
+	// Start download.
+	log.Printf("Download from: %v", req.URL())
+	resp := client.Do(req)
+
+	// Report download progress every 5 seconds.
+	watchDownload(resp, 5*time.Second)
+
+	// Check for errors.
+	if err := resp.Err(); err != nil {
+		log.Printf("Download failed: %v", err)
+		return err
+	}
+
+	log.Printf("Download saved to: %v", resp.Filename)
+	return nil
+}
+
 // Report reports values to the URL stored in `Kargs[report]`.
-func (c *Config) Report(report string, values url.Values) error {
+func (c *Config) Report(report string, values url.Values, dryrun bool) error {
 	log.Printf("Reporting values using %s=%s", report, c.Kargs[report])
 	reportURL, ok := c.Kargs[report]
 	if !ok {
 		return ErrActionURLNotFound
 	}
-
 	// Add the current config as a debug parameter on every Report.
 	values.Set("debug.config", c.String())
-	// TODO: make timeout configurable.
-	body, err := postDownload(reportURL, values, 10*time.Minute)
-	if err != nil {
-		return err
+
+	if dryrun {
+		log.Print(values)
+	} else {
+		// TODO: make timeout configurable.
+		body, err := postDownload(reportURL, values, 10*time.Minute)
+		if err != nil {
+			return err
+		}
+		// Unconditionally close body, since don't expect any content.
+		body.Close()
 	}
-	// Unconditionally close body, since don't expect any content.
-	body.Close()
 	return nil
 }
 

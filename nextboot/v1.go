@@ -109,7 +109,7 @@ func (c *Config) runCommands(dryrun bool) error {
 	if err != nil {
 		return err
 	}
-	err = c.evaluateFiles(dryrun)
+	err = c.evaluateAndDownloadFiles(dryrun)
 	defer c.cleanupFiles()
 	if err != nil {
 		return err
@@ -211,7 +211,8 @@ func (c *Config) evaluateVars() error {
 	return nil
 }
 
-func (c *Config) evaluateFiles(dryrun bool) error {
+// TODO: separate these operations to allow user-provided "names".
+func (c *Config) evaluateAndDownloadFiles(dryrun bool) error {
 	for name, urlspec := range c.V1.Files {
 		url, ok := urlspec["url"]
 		if !ok {

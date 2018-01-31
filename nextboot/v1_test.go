@@ -614,7 +614,7 @@ func TestConfig_runCommands(t *testing.T) {
 	}
 }
 
-func TestConfig_evaluateFiles(t *testing.T) {
+func TestConfig_evaluateAndDownloadFiles(t *testing.T) {
 	tests := []struct {
 		name      string
 		kargs     map[string]string
@@ -698,10 +698,10 @@ func TestConfig_evaluateFiles(t *testing.T) {
 					tt.expValue = tsGet.URL
 				}
 			}
-			err := c.evaluateFiles(false)
+			err := c.evaluateAndDownloadFiles(false)
 			if (err != nil) != tt.wantErr || tt.expValue != c.V1.Files["initram"]["url"] {
-				t.Errorf("Config.evaluateFiles() error = %v, wantErr %v", err, tt.wantErr)
-				t.Errorf("Config.evaluateFiles() got = %q, want %q",
+				t.Errorf("Config.evaluateAndDownloadFiles() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Config.evaluateAndDownloadFiles() got = %q, want %q",
 					tt.expValue, c.V1.Files["initram"]["url"])
 			}
 			c.cleanupFiles()

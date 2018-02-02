@@ -68,13 +68,8 @@ func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// TODO: make FormatStage1IPXEScript never return an error.
 	// Generate iPXE script.
-	script, err := template.FormatStage1IPXEScript(host, env.ServerAddr)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	script := template.FormatStage1IPXEScript(host, env.ServerAddr)
 
 	// Complete request as successful.
 	rw.Header().Set("Content-Type", "text/plain; charset=us-ascii")

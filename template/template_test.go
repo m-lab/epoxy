@@ -20,15 +20,16 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+
 	"github.com/m-lab/epoxy/storage"
 )
 
 const expectedStage1Script = `#!ipxe
 
 set stage1to2_url https://example.com/path/stage1to2/stage1to2.ipxe
-set nextstage_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/01234/nextstage.json
-set beginstage_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/56789/beginstage
-set endstage_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/86420/endstage
+set stage2_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/01234/stage2.json
+set stage3_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/56789/stage3.json
+set report_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/86420/report
 
 chain ${stage1to2_url}
 `
@@ -47,10 +48,7 @@ func TestFormatStage1IPXEScript(t *testing.T) {
 		},
 	}
 
-	script, err := FormatStage1IPXEScript(h, "boot-api-mlab-sandbox.appspot.com")
-	if err != nil {
-		t.Fatalf("Failed to create stage1 ipxe script: %s", err)
-	}
+	script := FormatStage1IPXEScript(h, "boot-api-mlab-sandbox.appspot.com")
 	// Verify the correct script header.
 	if !strings.HasPrefix(script, "#!ipxe") {
 		lines := strings.SplitN(script, "\n", 2)

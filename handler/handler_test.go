@@ -116,9 +116,9 @@ func TestGenerateStage1IPXE(t *testing.T) {
 		partialPath string
 	}{
 		{"stage1to2_url", "storage.googleapis.com", "epoxy-boot-server/stage1to2/stage1to2.ipxe"},
-		{"nextstage_url", "example.com:4321", h.CurrentSessionIDs.NextStageID},
-		{"beginstage_url", "example.com:4321", h.CurrentSessionIDs.BeginStageID},
-		{"endstage_url", "example.com:4321", h.CurrentSessionIDs.EndStageID},
+		{"stage2_url", "example.com:4321", h.CurrentSessionIDs.NextStageID},
+		{"stage3_url", "example.com:4321", h.CurrentSessionIDs.BeginStageID},
+		{"report_url", "example.com:4321", h.CurrentSessionIDs.EndStageID},
 	}
 	// Assert that all expected values are found.
 	for _, u := range urlChecks {

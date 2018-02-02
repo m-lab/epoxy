@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"log"
 
 	"github.com/m-lab/epoxy/storage"
 )
@@ -28,37 +29,38 @@ import (
 // stage1IpxeTemplate is a template for executing the stage1 iPXE script.
 const stage1IpxeTemplate = `#!ipxe
 
-set stage1to2_url {{ .Stage1to2ScriptName }}
-set nextstage_url {{ .NextStageURL }}
-set beginstage_url {{ .BeginStageURL }}
-set endstage_url {{ .EndStageURL }}
+set stage1to2_url {{ .Stage1to2ScriptURL }}
+set stage2_url {{ .Stage2URL }}
+set stage3_url {{ .Stage3URL }}
+set report_url {{ .ReportURL }}
 
 chain ${stage1to2_url}
 `
 
 // FormatStage1IPXEScript generates a stage1 iPXE boot script using values from Host.
-func FormatStage1IPXEScript(h *storage.Host, serverAddr string) (script string, err error) {
+func FormatStage1IPXEScript(h *storage.Host, serverAddr string) string {
 	var b bytes.Buffer
 
-	t, err := template.New("stage1").Parse(stage1IpxeTemplate)
-	if err != nil {
-		return "", err
-	}
-
-	// Prepare a map
+	// Prepare a map for evaluating template.
 	vals := make(map[string]string)
-	vals["Stage1to2ScriptName"] = h.Stage1to2ScriptName
-	vals["NextStageURL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/nextstage.json",
+	vals["Stage1to2ScriptURL"] = h.Stage1to2ScriptName
+	vals["Stage2URL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/stage2.json",
 		serverAddr, h.Name, h.CurrentSessionIDs.NextStageID)
-	vals["BeginStageURL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/beginstage",
+	vals["Stage3URL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/stage3.json",
 		serverAddr, h.Name, h.CurrentSessionIDs.BeginStageID)
-	vals["EndStageURL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/endstage",
+	vals["ReportURL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/report",
 		serverAddr, h.Name, h.CurrentSessionIDs.EndStageID)
 
-	err = t.Execute(&b, vals)
+	t := template.Must(template.New("stage1").Parse(stage1IpxeTemplate))
+	err := t.Execute(&b, vals)
 	if err != nil {
-		return "", err
+		// This error could only occur with a bad template, which should
+		// be caught by unit tests.
+		log.Print(err)
+		// Use panic instead of log.Fatal so the server can recover.
+		panic(err)
+		// TODO: return a static fallback configuration via the stage1to2_url.
 	}
 
-	return b.String(), nil
+	return b.String()
 }

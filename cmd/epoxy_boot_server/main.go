@@ -96,7 +96,7 @@ func newRouter(env *handler.Env) *mux.Router {
 	// Stage1 scripts are always the first script fetched by a booting machine.
 	// "stage1.ipxe" is the target for ROM-based iPXE clients.
 	addRoute(router, "POST", "/v1/boot/{hostname}/stage1.ipxe",
-		handler.Handler{env, handler.GenerateStage1IPXE})
+		http.HandlerFunc(env.GenerateStage1IPXE))
 
 	// TODO(soltesz): add a target for CD-based ePoxy clients.
 	// addRoute(router, "POST", "/v1/boot/{hostname}/stage1.json", generateStage1Json)

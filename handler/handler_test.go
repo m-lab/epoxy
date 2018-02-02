@@ -16,6 +16,7 @@
 package handler
 
 import (
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -30,17 +31,25 @@ import (
 // fakeConfig is a minimal Config implementation that emulates Host storage with a
 // private field.
 type fakeConfig struct {
-	host *storage.Host
+	host       *storage.Host
+	failOnLoad bool
+	failOnSave bool
 }
 
 // Save copies the host parameter to the fakeConfig.
 func (f fakeConfig) Save(host *storage.Host) error {
+	if f.failOnSave {
+		return errors.New("Failed to save: " + host.Name)
+	}
 	*f.host = *host
 	return nil
 }
 
 // Save returns a copy of the fakeConfig host.
 func (f fakeConfig) Load(name string) (*storage.Host, error) {
+	if f.failOnLoad {
+		return nil, errors.New("Failed to load: " + name)
+	}
 	h := &storage.Host{}
 	*h = *f.host
 	return h, nil
@@ -55,11 +64,11 @@ func TestGenerateStage1IPXE(t *testing.T) {
 		IPAddress:           "165.117.240.9",
 		Stage1to2ScriptName: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
 	}
-	env := &Env{fakeConfig{h}, "example.com:4321"}
+	env := &Env{fakeConfig{host: h}, "example.com:4321"}
 	router := mux.NewRouter()
 	router.Methods("POST").
 		Path("/v1/boot/{hostname}/stage1.ipxe").
-		Handler(Handler{env, GenerateStage1IPXE})
+		HandlerFunc(env.GenerateStage1IPXE)
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
@@ -124,5 +133,53 @@ func TestGenerateStage1IPXE(t *testing.T) {
 			t.Errorf("Missing portion of URL path for variable %q; got %q, want %q\n",
 				u.name, url.Path, u.partialPath)
 		}
+	}
+}
+
+func TestEnv_GenerateStage1IPXE(t *testing.T) {
+	h := &storage.Host{
+		Name:                "mlab1.iad1t.measurement-lab.org",
+		IPAddress:           "165.117.240.9",
+		Stage1to2ScriptName: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+	}
+	tests := []struct {
+		name   string
+		vars   map[string]string
+		req    *http.Request
+		config fakeConfig
+		status int
+	}{
+		{
+			name:   "okay",
+			vars:   map[string]string{"hostname": h.Name},
+			config: fakeConfig{host: h, failOnLoad: false, failOnSave: false},
+			status: http.StatusOK,
+		},
+		{
+			name:   "fail-on-load",
+			vars:   map[string]string{"hostname": h.Name},
+			config: fakeConfig{host: h, failOnLoad: true, failOnSave: false},
+			status: http.StatusNotFound,
+		},
+		{
+			name:   "fail-on-save",
+			config: fakeConfig{host: h, failOnLoad: false, failOnSave: true},
+			status: http.StatusInternalServerError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vars := map[string]string{"hostname": h.Name}
+			req := httptest.NewRequest("POST", "/v1/boot/"+h.Name+"/stage1.ipxe", nil)
+			rec := httptest.NewRecorder()
+
+			env := &Env{tt.config, "example.com:4321"}
+			req = mux.SetURLVars(req, vars)
+			env.GenerateStage1IPXE(rec, req)
+
+			if rec.Code != tt.status {
+				t.Errorf("GenerateStage1IPXE() wrong HTTP status: got %v; want %v", rec.Code, tt.status)
+			}
+		})
 	}
 }

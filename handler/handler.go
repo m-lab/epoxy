@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path"
 
 	"github.com/gorilla/mux"
 	"github.com/m-lab/epoxy/storage"
@@ -57,10 +58,7 @@ func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 	// * Save information sent in PostForm.
 
 	// Generate new session IDs.
-	if err := host.GenerateSessionIDs(); err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	host.GenerateSessionIDs()
 
 	// Save host record to Datastore to commit session IDs.
 	if err := env.Config.Save(host); err != nil {
@@ -78,5 +76,47 @@ func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Printf("Failed to write response to %q: %v", hostname, err)
 	}
+	return
+}
+
+// GenerateJSONConfig
+func (env *Env) GenerateJSONConfig(rw http.ResponseWriter, req *http.Request) {
+	hostname := mux.Vars(req)["hostname"]
+	// TODO: Verify that the sessionID matches the host.CurrentSessionIDs.Stage2ID.
+	// sessionId := mux.Vars(req)["sessionID"]
+
+	// Use hostname as key to load record from Datastore.
+	host, err := env.Config.Load(hostname)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusNotFound)
+		return
+	}
+	// TODO(soltesz):
+	// * Verify that the source IP maches the host IP.
+	// * Save information sent in PostForm, e.g. ssh host key.
+	stage := path.Base(req.URL.Path)
+
+	script := template.FormatJSONConfig(host, stage)
+
+	// Complete request as successful.
+	rw.Header().Set("Content-Type", "application/json; charset=utf-8")
+	rw.WriteHeader(http.StatusOK)
+	_, err = fmt.Fprintf(rw, script)
+	if err != nil {
+		log.Printf("Failed to write response to %q: %v", hostname, err)
+	}
+	return
+}
+
+// ReceiveReport handles the last step of a boot sequence when the epoxy client reports
+// success or failure. In both cases, the session ids are invalidated. In all cases,
+// epoxy_client is expected to report the server's public host key.
+func (env *Env) ReceiveReport(rw http.ResponseWriter, req *http.Request) {
+	// TODO: ParseForm in req.Body()
+	// TODO: log or save values where appropriate.
+	req.ParseForm()
+	log.Println(req.PostForm)
+	// TODO: invalidate session ids.
+	rw.WriteHeader(http.StatusNoContent)
 	return
 }

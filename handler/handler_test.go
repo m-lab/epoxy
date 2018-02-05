@@ -60,9 +60,11 @@ func (f fakeConfig) Load(name string) (*storage.Host, error) {
 func TestGenerateStage1IPXE(t *testing.T) {
 	// Setup fake server.
 	h := &storage.Host{
-		Name:                "mlab1.iad1t.measurement-lab.org",
-		IPAddress:           "165.117.240.9",
-		Stage1to2ScriptName: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+		Name:     "mlab1.iad1t.measurement-lab.org",
+		IPv4Addr: "165.117.240.9",
+		Boot: storage.Sequence{
+			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+		},
 	}
 	env := &Env{fakeConfig{host: h}, "example.com:4321"}
 	router := mux.NewRouter()
@@ -115,10 +117,10 @@ func TestGenerateStage1IPXE(t *testing.T) {
 		host        string
 		partialPath string
 	}{
-		{"stage1to2_url", "storage.googleapis.com", "epoxy-boot-server/stage1to2/stage1to2.ipxe"},
-		{"stage2_url", "example.com:4321", h.CurrentSessionIDs.NextStageID},
-		{"stage3_url", "example.com:4321", h.CurrentSessionIDs.BeginStageID},
-		{"report_url", "example.com:4321", h.CurrentSessionIDs.EndStageID},
+		{"stage1chain_url", "storage.googleapis.com", "epoxy-boot-server/stage1to2/stage1to2.ipxe"},
+		{"stage2_url", "example.com:4321", h.CurrentSessionIDs.Stage2ID},
+		{"stage3_url", "example.com:4321", h.CurrentSessionIDs.Stage3ID},
+		{"report_url", "example.com:4321", h.CurrentSessionIDs.ReportID},
 	}
 	// Assert that all expected values are found.
 	for _, u := range urlChecks {
@@ -138,9 +140,11 @@ func TestGenerateStage1IPXE(t *testing.T) {
 
 func TestEnv_GenerateStage1IPXE(t *testing.T) {
 	h := &storage.Host{
-		Name:                "mlab1.iad1t.measurement-lab.org",
-		IPAddress:           "165.117.240.9",
-		Stage1to2ScriptName: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+		Name:     "mlab1.iad1t.measurement-lab.org",
+		IPv4Addr: "165.117.240.9",
+		Boot: storage.Sequence{
+			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+		},
 	}
 	tests := []struct {
 		name   string
@@ -180,6 +184,33 @@ func TestEnv_GenerateStage1IPXE(t *testing.T) {
 			if rec.Code != tt.status {
 				t.Errorf("GenerateStage1IPXE() wrong HTTP status: got %v; want %v", rec.Code, tt.status)
 			}
+		})
+	}
+}
+
+func TestEnv_GenerateJSONConfig(t *testing.T) {
+	type fields struct {
+		Config     Config
+		ServerAddr string
+	}
+	type args struct {
+		rw  http.ResponseWriter
+		req *http.Request
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+	// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env := &Env{
+				Config:     tt.fields.Config,
+				ServerAddr: tt.fields.ServerAddr,
+			}
+			env.GenerateJSONConfig(tt.args.rw, tt.args.req)
 		})
 	}
 }

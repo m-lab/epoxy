@@ -23,33 +23,37 @@ import (
 	"html/template"
 	"log"
 
+	"github.com/m-lab/epoxy/nextboot"
 	"github.com/m-lab/epoxy/storage"
 )
 
 // stage1IpxeTemplate is a template for executing the stage1 iPXE script.
 const stage1IpxeTemplate = `#!ipxe
 
-set stage1to2_url {{ .Stage1to2ScriptURL }}
+set stage1chain_url {{ .Stage1ChainURL }}
 set stage2_url {{ .Stage2URL }}
 set stage3_url {{ .Stage3URL }}
 set report_url {{ .ReportURL }}
 
-chain ${stage1to2_url}
+chain ${stage1chain_url}
 `
 
 // FormatStage1IPXEScript generates a stage1 iPXE boot script using values from Host.
 func FormatStage1IPXEScript(h *storage.Host, serverAddr string) string {
 	var b bytes.Buffer
 
+	// Chose the current boot sequence from host.
+	s := h.CurrentSequence()
+
 	// Prepare a map for evaluating template.
 	vals := make(map[string]string)
-	vals["Stage1to2ScriptURL"] = h.Stage1to2ScriptName
-	vals["Stage2URL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/stage2.json",
-		serverAddr, h.Name, h.CurrentSessionIDs.NextStageID)
-	vals["Stage3URL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/stage3.json",
-		serverAddr, h.Name, h.CurrentSessionIDs.BeginStageID)
+	vals["Stage1ChainURL"] = s.NextURL("stage1")
+	vals["Stage2URL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/stage2",
+		serverAddr, h.Name, h.CurrentSessionIDs.Stage2ID)
+	vals["Stage3URL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/stage3",
+		serverAddr, h.Name, h.CurrentSessionIDs.Stage3ID)
 	vals["ReportURL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/report",
-		serverAddr, h.Name, h.CurrentSessionIDs.EndStageID)
+		serverAddr, h.Name, h.CurrentSessionIDs.ReportID)
 
 	t := template.Must(template.New("stage1").Parse(stage1IpxeTemplate))
 	err := t.Execute(&b, vals)
@@ -63,4 +67,16 @@ func FormatStage1IPXEScript(h *storage.Host, serverAddr string) string {
 	}
 
 	return b.String()
+}
+
+// FormatStage2JSONConfig generates a stage2 JSON configuration for an epoxy client.
+func FormatJSONConfig(h *storage.Host, stage string) string {
+	// Chose the current boot sequence from host.
+	s := h.CurrentSequence()
+	c := nextboot.Config{
+		V1: &nextboot.V1{
+			Chain: s.NextURL(stage),
+		},
+	}
+	return c.String()
 }

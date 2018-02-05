@@ -26,25 +26,27 @@ import (
 
 const expectedStage1Script = `#!ipxe
 
-set stage1to2_url https://example.com/path/stage1to2/stage1to2.ipxe
-set stage2_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/01234/stage2.json
-set stage3_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/56789/stage3.json
+set stage1chain_url https://example.com/path/stage1to2/stage1to2.ipxe
+set stage2_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/01234/stage2
+set stage3_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/56789/stage3
 set report_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/86420/report
 
-chain ${stage1to2_url}
+chain ${stage1chain_url}
 `
 
 // TestFormatStage1IPXEScript formats a stage1 iPXE script for a sample Host record.
 // The result is checked for a valid header and verbatim against the expected content.
 func TestFormatStage1IPXEScript(t *testing.T) {
 	h := &storage.Host{
-		Name:                "mlab1.iad1t.measurement-lab.org",
-		IPAddress:           "165.117.240.9",
-		Stage1to2ScriptName: "https://example.com/path/stage1to2/stage1to2.ipxe",
+		Name:     "mlab1.iad1t.measurement-lab.org",
+		IPv4Addr: "165.117.240.9",
+		Boot: storage.Sequence{
+			Stage1ChainURL: "https://example.com/path/stage1to2/stage1to2.ipxe",
+		},
 		CurrentSessionIDs: storage.SessionIDs{
-			NextStageID:  "01234",
-			BeginStageID: "56789",
-			EndStageID:   "86420",
+			Stage2ID: "01234",
+			Stage3ID: "56789",
+			ReportID: "86420",
 		},
 	}
 

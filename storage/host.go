@@ -136,7 +136,6 @@ func generateSessionID() string {
 		// Only possible if randRead fails to read len(b) bytes.
 		panic(err)
 	}
-	// Return a fixed-format base32 hex encoding of the random bytes.
-	// return base32.StdEncoding.EncodeToString(b)
+	// RawURLEncoding does not pad encoded string with "=".
 	return base64.RawURLEncoding.EncodeToString(b)
 }

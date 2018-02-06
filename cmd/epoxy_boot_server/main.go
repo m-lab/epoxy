@@ -101,11 +101,16 @@ func newRouter(env *handler.Env) *mux.Router {
 	// TODO(soltesz): add a target for CD-based ePoxy clients.
 	// addRoute(router, "POST", "/v1/boot/{hostname}/stage1.json", generateStage1Json)
 
-	// Next, begin, and end stage targets load after stage1 runs successfully.
-	// TODO(soltesz): add targets for next, begin, and end stage targets.
-	// addRoute(router, "POST", "/v1/boot/{hostname}/{sessionId}/nextstage.json", generateNextstage)
-	// addRoute(router, "POST", "/v1/boot/{hostname}/{sessionId}/beginstage", handleBeginStage)
-	// addRoute(router, "POST", "/v1/boot/{hostname}/{sessionId}/endstage", handleEndStage)
+	//TODO: make the names stage2 and stage3 arbitrary when we need to support
+	///the case where not every machine has the same stage2 or stage3
+
+	// Stage2, stage3, and report targets load after stage1 runs successfully.
+	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionId}/stage2",
+		http.HandlerFunc(env.GenerateJSONConfig))
+	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionId}/stage3",
+		http.HandlerFunc(env.GenerateJSONConfig))
+	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionId}/report",
+		http.HandlerFunc(env.ReceiveReport))
 
 	// TODO(soltesz): add a target or retrieving all published SSH host keys.
 	// addRoute(router, "GET", "/v1/boot/known_hosts", getKnownHosts)

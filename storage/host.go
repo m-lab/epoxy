@@ -48,74 +48,105 @@ type CollectedInformation struct {
 	PublicSSHHostKey string
 }
 
+// TODO: SessionIDs and Sequence structs should be map[string]string, that
+// store target stage names as keys. This prevents hard-coding the target names,
+// the SessionID names and the Sequence stage names.
+
 // SessionIDs contains the three session IDs generated when requesting a stage1 target.
 type SessionIDs struct {
-	NextStageID  string // Needed for requesting the nextstage.json target.
-	BeginStageID string // Needed for requesting the begingstage target.
-	EndStageID   string // Needed for requesting the endstage target.
+	Stage2ID string // Needed for requesting the stage2.json target.
+	Stage3ID string // Needed for requesting the stage3.json target.
+	ReportID string // Needed for requesting the report target.
+}
+
+// TODO: Sequences could be a separate type stored in datastore. These could be
+// named and referenced by Host objects by name.
+
+// Sequence represents a set of operator-provided iPXE scripts or JSON nextboot Configs.
+type Sequence struct {
+	// Stage1ChainURL is the absolute URL to an iPXE script for booting from stage1 to stage2.
+	Stage1ChainURL string
+	// Stage2ChainURL is the absolute URL to a JSON config for booting from stage2 to stage3.
+	Stage2ChainURL string
+	// Stage3ChainURL is the absolute URL to a JSON config for running commands in stage3. For
+	// example, "flashrom", or "join global k8s cluster".
+	Stage3ChainURL string
+}
+
+// NextURL returns the Chain URL corresponding to the given stage name.
+func (s Sequence) NextURL(stage string) string {
+	switch stage {
+	case "stage1":
+		return s.Stage1ChainURL
+	case "stage2":
+		return s.Stage2ChainURL
+	case "stage3":
+		return s.Stage3ChainURL
+	default:
+		// TODO: support a default error url.
+		return ""
+	}
 }
 
 // A Host represents the configuration of a server managed by ePoxy.
 type Host struct {
 	// Name is the FQDN of the host.
 	Name string
-	// IPAddress is the IP address the booting machine will use to connect to the API.
-	IPAddress string
-	// Stage1to2ScriptName is the absolute URL to an iPXE script for booting stage1 to stage2.
-	Stage1to2ScriptName string
-	// NextStageEnabled controls whether ePoxy returns the NextStageScriptName (true)
-	// or DefaultScriptName (false).
-	NextStageEnabled bool
-	// NextStageScriptName is the absolute URL of a JSON next stage configuration.
-	NextStageScriptName string
-	// DefaultScriptName is the absolute URL of a JSON default configuration.
-	DefaultScriptName string
-	// LastSessionIDs are the most recently generated session ids for a booting machine.
+	// IPv4Addr is the IPv4 address the booting machine will use to connect to the API.
+	IPv4Addr string
+
+	// Boot is the typical boot sequence for this Host.
+	Boot Sequence
+	// Update is an alternate boot sequence, typically used to update the system, e.g. reinstall, reflash.
+	Update Sequence
+
+	// UpdateEnabled controls whether ePoxy returns the Update Sequence (true)
+	// or Boot Sequence (false) Chain URLs.
+	UpdateEnabled bool
+
+	// CurrentSessionIDs are the most recently generated session ids for a booting machine.
 	CurrentSessionIDs SessionIDs
 	// LastSessionCreation is the time when CurrentSessionIDs was generated.
 	LastSessionCreation time.Time
-	// Information reported by the host.
+	// CollectedInformation reported by the host.
 	CollectedInformation CollectedInformation
 }
 
 // String serializes a Host record. All string type Host fields should be UTF8.
 func (h *Host) String() string {
-	// Errors only occur for non-UTF8 characters in strings.
+	// Errors only occur for non-UTF8 characters in strings or unmarshalable types (which we don't have).
 	b, _ := json.MarshalIndent(h, "", "    ")
 	return string(b)
 }
 
 // GenerateSessionIDs creates new random session IDs for the host's CurrentSessionIDs.
 // On success, the host LastSessionCreation is updated to the current time.
-func (h *Host) GenerateSessionIDs() error {
-	var err error
-	h.CurrentSessionIDs.NextStageID, err = generateSessionID()
-	if err != nil {
-		return err
-	}
-	h.CurrentSessionIDs.BeginStageID, err = generateSessionID()
-	if err != nil {
-		return err
-	}
-	h.CurrentSessionIDs.EndStageID, err = generateSessionID()
-	if err != nil {
-		return err
-	}
+func (h *Host) GenerateSessionIDs() {
+	h.CurrentSessionIDs.Stage2ID = generateSessionID()
+	h.CurrentSessionIDs.Stage3ID = generateSessionID()
+	h.CurrentSessionIDs.ReportID = generateSessionID()
 	h.LastSessionCreation = timeNow()
-	return nil
+}
+
+// CurrentSequence returns the currently enabled boot sequence.
+func (h *Host) CurrentSequence() Sequence {
+	if h.UpdateEnabled {
+		return h.Update
+	}
+	return h.Boot
 }
 
 // randomSessionByteCount is the number of bytes used to generate random session IDs.
 const randomSessionByteCount = 20
 
 // generateSessionId creates a random session ID.
-func generateSessionID() (string, error) {
+func generateSessionID() string {
 	b := make([]byte, randomSessionByteCount)
 	_, err := randRead(b)
 	if err != nil {
 		// Only possible if randRead fails to read len(b) bytes.
-		return "", err
+		panic(err)
 	}
 	// RawURLEncoding does not pad encoded string with "=".
-	return base64.RawURLEncoding.EncodeToString(b), nil
+	return base64.RawURLEncoding.EncodeToString(b)
 }

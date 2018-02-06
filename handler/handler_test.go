@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
+	"github.com/m-lab/epoxy/nextboot"
 	"github.com/m-lab/epoxy/storage"
 )
 
@@ -60,9 +61,11 @@ func (f fakeConfig) Load(name string) (*storage.Host, error) {
 func TestGenerateStage1IPXE(t *testing.T) {
 	// Setup fake server.
 	h := &storage.Host{
-		Name:                "mlab1.iad1t.measurement-lab.org",
-		IPAddress:           "165.117.240.9",
-		Stage1to2ScriptName: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+		Name:     "mlab1.iad1t.measurement-lab.org",
+		IPv4Addr: "165.117.240.9",
+		Boot: storage.Sequence{
+			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+		},
 	}
 	env := &Env{fakeConfig{host: h}, "example.com:4321"}
 	router := mux.NewRouter()
@@ -115,10 +118,10 @@ func TestGenerateStage1IPXE(t *testing.T) {
 		host        string
 		partialPath string
 	}{
-		{"stage1to2_url", "storage.googleapis.com", "epoxy-boot-server/stage1to2/stage1to2.ipxe"},
-		{"nextstage_url", "example.com:4321", h.CurrentSessionIDs.NextStageID},
-		{"beginstage_url", "example.com:4321", h.CurrentSessionIDs.BeginStageID},
-		{"endstage_url", "example.com:4321", h.CurrentSessionIDs.EndStageID},
+		{"stage1chain_url", "storage.googleapis.com", "epoxy-boot-server/stage1to2/stage1to2.ipxe"},
+		{"stage2_url", "example.com:4321", h.CurrentSessionIDs.Stage2ID},
+		{"stage3_url", "example.com:4321", h.CurrentSessionIDs.Stage3ID},
+		{"report_url", "example.com:4321", h.CurrentSessionIDs.ReportID},
 	}
 	// Assert that all expected values are found.
 	for _, u := range urlChecks {
@@ -138,9 +141,11 @@ func TestGenerateStage1IPXE(t *testing.T) {
 
 func TestEnv_GenerateStage1IPXE(t *testing.T) {
 	h := &storage.Host{
-		Name:                "mlab1.iad1t.measurement-lab.org",
-		IPAddress:           "165.117.240.9",
-		Stage1to2ScriptName: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+		Name:     "mlab1.iad1t.measurement-lab.org",
+		IPv4Addr: "165.117.240.9",
+		Boot: storage.Sequence{
+			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+		},
 	}
 	tests := []struct {
 		name   string
@@ -180,6 +185,93 @@ func TestEnv_GenerateStage1IPXE(t *testing.T) {
 			if rec.Code != tt.status {
 				t.Errorf("GenerateStage1IPXE() wrong HTTP status: got %v; want %v", rec.Code, tt.status)
 			}
+		})
+	}
+}
+
+func TestEnv_GenerateJSONConfig(t *testing.T) {
+	h := &storage.Host{
+		Name:     "mlab1.iad1t.measurement-lab.org",
+		IPv4Addr: "165.117.240.9",
+		Boot: storage.Sequence{
+			Stage2ChainURL: "https://storage.googleapis.com/epoxy-boot-server/stage2/stage2.ipxe",
+		},
+		CurrentSessionIDs: storage.SessionIDs{
+			Stage2ID: "12345",
+		},
+	}
+	tests := []struct {
+		name     string
+		config   fakeConfig
+		status   int
+		expected string
+	}{
+		{
+			name:     "okay",
+			config:   fakeConfig{host: h, failOnLoad: false, failOnSave: false},
+			status:   http.StatusOK,
+			expected: (&nextboot.Config{V1: &nextboot.V1{Chain: h.Boot.Stage2ChainURL}}).String(),
+		},
+		{
+			name:     "fail-on-load",
+			config:   fakeConfig{host: h, failOnLoad: true, failOnSave: false},
+			status:   http.StatusNotFound,
+			expected: "Failed to load: mlab1.iad1t.measurement-lab.org\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vars := map[string]string{"hostname": h.Name, "sessionId": h.CurrentSessionIDs.Stage2ID}
+			path := "/v1/boot/mlab1.iad1t.measurement-lab.org/12345/stage2"
+			req := httptest.NewRequest("POST", path, nil)
+			rec := httptest.NewRecorder()
+
+			env := &Env{tt.config, "server.com:4321"}
+			req = mux.SetURLVars(req, vars)
+			env.GenerateJSONConfig(rec, req)
+
+			if rec.Code != tt.status {
+				t.Errorf("GenerateJSONConfig() wrong HTTP status: got %v; want %v", rec.Code, tt.status)
+			}
+			if tt.expected != rec.Body.String() {
+				t.Errorf("GenerateJSONConfig() wrong response: got %v\n; want %v\n", rec.Body.String(), tt.expected)
+			}
+		})
+	}
+}
+
+func TestEnv_ReceiveReport(t *testing.T) {
+	h := &storage.Host{
+		Name:     "mlab1.iad1t.measurement-lab.org",
+		IPv4Addr: "165.117.240.9",
+		CurrentSessionIDs: storage.SessionIDs{
+			ReportID: "12345",
+		},
+	}
+	tests := []struct {
+		name   string
+		status int
+	}{
+		{
+			name:   "place-holder",
+			status: http.StatusNoContent,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vars := map[string]string{"hostname": h.Name, "sessionId": h.CurrentSessionIDs.Stage2ID}
+			path := "/v1/boot/mlab1.iad1t.measurement-lab.org/12345/report"
+			req := httptest.NewRequest("POST", path, nil)
+			rec := httptest.NewRecorder()
+
+			env := &Env{fakeConfig{host: h, failOnLoad: false, failOnSave: false}, "server.com:4321"}
+			req = mux.SetURLVars(req, vars)
+			env.ReceiveReport(rec, req)
+
+			if rec.Code != tt.status {
+				t.Errorf("GenerateJSONConfig() wrong HTTP status: got %v; want %v", rec.Code, tt.status)
+			}
+
 		})
 	}
 }

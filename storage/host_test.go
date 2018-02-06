@@ -24,15 +24,22 @@ import (
 func TestHostString(t *testing.T) {
 	hostExpected := `{
     "Name": "mlab1.iad1t.measurement-lab.org",
-    "IPAddress": "165.117.240.9",
-    "Stage1to2ScriptName": "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
-    "NextStageEnabled": false,
-    "NextStageScriptName": "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
-    "DefaultScriptName": "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
+    "IPv4Addr": "165.117.240.9",
+    "Boot": {
+        "Stage1ChainURL": "https://storage.googleapis.com/epoxy-boot-server/coreos/stage1to2.ipxe",
+        "Stage2ChainURL": "https://storage.googleapis.com/epoxy-boot-server/coreos/stage2to3.json",
+        "Stage3ChainURL": "https://storage.googleapis.com/epoxy-boot-server/coreos/stage3setup.json"
+    },
+    "Update": {
+        "Stage1ChainURL": "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
+        "Stage2ChainURL": "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
+        "Stage3ChainURL": ""
+    },
+    "UpdateEnabled": false,
     "CurrentSessionIDs": {
-        "NextStageID": "01234",
-        "BeginStageID": "56789",
-        "EndStageID": "13579"
+        "Stage2ID": "01234",
+        "Stage3ID": "56789",
+        "ReportID": "13579"
     },
     "LastSessionCreation": "2016-01-02T15:04:00Z",
     "CollectedInformation": {
@@ -50,21 +57,27 @@ func TestHostString(t *testing.T) {
         "PublicSSHHostKey": ""
     }
 }`
-
 	lastCreated, err := time.Parse("Jan 2, 2006 at 3:04pm (GMT)", "Jan 2, 2016 at 3:04pm (GMT)")
 	if err != nil {
 		t.Fatal(err)
 	}
 	h := Host{
-		Name:                "mlab1.iad1t.measurement-lab.org",
-		IPAddress:           "165.117.240.9",
-		Stage1to2ScriptName: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
-		NextStageScriptName: "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
-		DefaultScriptName:   "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
+		Name:     "mlab1.iad1t.measurement-lab.org",
+		IPv4Addr: "165.117.240.9",
+		Boot: Sequence{
+			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/coreos/stage1to2.ipxe",
+			Stage2ChainURL: "https://storage.googleapis.com/epoxy-boot-server/coreos/stage2to3.json",
+			Stage3ChainURL: "https://storage.googleapis.com/epoxy-boot-server/coreos/stage3setup.json",
+		},
+		Update: Sequence{
+			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
+			Stage2ChainURL: "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
+			Stage3ChainURL: "",
+		},
 		CurrentSessionIDs: SessionIDs{
-			NextStageID:  "01234",
-			BeginStageID: "56789",
-			EndStageID:   "13579",
+			Stage2ID: "01234",
+			Stage3ID: "56789",
+			ReportID: "13579",
 		},
 		LastSessionCreation: lastCreated,
 	}
@@ -85,7 +98,7 @@ func TestHostGenerateSessionIDs(t *testing.T) {
 		}
 		return len(b), nil
 	}
-	lastCreated, err := time.Parse("Jan 2, 2006 at 3:04pm (GMT)", "Jan 2, 2016 at 3:04pm (GMT)")
+	lastCreated, _ := time.Parse("Jan 2, 2006 at 3:04pm (GMT)", "Jan 2, 2016 at 3:04pm (GMT)")
 	// Assign a synthetic time function to return a known time.
 	timeNow = func() time.Time {
 		return lastCreated
@@ -93,21 +106,18 @@ func TestHostGenerateSessionIDs(t *testing.T) {
 	h := &Host{}
 
 	expectedID := "AQEBAQEBAQEBAQEBAQEBAQEBAQE"
-	err = h.GenerateSessionIDs()
-	if err != nil {
-		t.Fatalf("Failed to generate session IDs: %s", err)
+	h.GenerateSessionIDs()
+	if h.CurrentSessionIDs.Stage2ID != expectedID {
+		t.Fatalf("Failed to generate Stage2ID: got %q; want %q",
+			h.CurrentSessionIDs.Stage2ID, expectedID)
 	}
-	if h.CurrentSessionIDs.NextStageID != expectedID {
-		t.Fatalf("Failed to generate NextStageID: got %q; want %q",
-			h.CurrentSessionIDs.NextStageID, expectedID)
+	if h.CurrentSessionIDs.Stage3ID != expectedID {
+		t.Fatalf("Failed to generate Stage3ID: got %q; want %q",
+			h.CurrentSessionIDs.Stage3ID, expectedID)
 	}
-	if h.CurrentSessionIDs.BeginStageID != expectedID {
-		t.Fatalf("Failed to generate BeginStageID: got %q; want %q",
-			h.CurrentSessionIDs.BeginStageID, expectedID)
-	}
-	if h.CurrentSessionIDs.EndStageID != expectedID {
-		t.Fatalf("Failed to generate EndStageID: got %q; want %q",
-			h.CurrentSessionIDs.EndStageID, expectedID)
+	if h.CurrentSessionIDs.ReportID != expectedID {
+		t.Fatalf("Failed to generate ReportID: got %q; want %q",
+			h.CurrentSessionIDs.ReportID, expectedID)
 	}
 	expectedTime := "2016-01-02 15:04:00 +0000 UTC"
 	if h.LastSessionCreation.String() != expectedTime {

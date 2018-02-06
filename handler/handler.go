@@ -79,7 +79,8 @@ func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 	return
 }
 
-// GenerateJSONConfig
+// GenerateJSONConfig creates and returns a JSON serialized nextboot.Config
+// suitable for responding to stage2 or stage3 requests.
 func (env *Env) GenerateJSONConfig(rw http.ResponseWriter, req *http.Request) {
 	hostname := mux.Vars(req)["hostname"]
 	// TODO: Verify that the sessionID matches the host.CurrentSessionIDs.Stage2ID.

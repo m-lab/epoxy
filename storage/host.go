@@ -48,12 +48,19 @@ type CollectedInformation struct {
 	PublicSSHHostKey string
 }
 
+// TODO: SessionIDs and Sequence structs should be map[string]string, that
+// store target stage names as keys. This prevents hard-coding the target names,
+// the SessionID names and the Sequence stage names.
+
 // SessionIDs contains the three session IDs generated when requesting a stage1 target.
 type SessionIDs struct {
-	Stage2ID string // Needed for requesting the nextstage.json target.
-	Stage3ID string // Needed for requesting the begingstage target.
-	ReportID string // Needed for requesting the endstage target.
+	Stage2ID string // Needed for requesting the stage2.json target.
+	Stage3ID string // Needed for requesting the stage3.json target.
+	ReportID string // Needed for requesting the report target.
 }
+
+// TODO: Sequences could be a separate type stored in datastore. These could be
+// named and referenced by Host objects by name.
 
 // Sequence represents a set of operator-provided iPXE scripts or JSON nextboot Configs.
 type Sequence struct {

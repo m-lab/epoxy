@@ -101,6 +101,9 @@ func newRouter(env *handler.Env) *mux.Router {
 	// TODO(soltesz): add a target for CD-based ePoxy clients.
 	// addRoute(router, "POST", "/v1/boot/{hostname}/stage1.json", generateStage1Json)
 
+	//TODO: make the names stage2 and stage3 arbitrary when we need to support
+	///the case where not every machine has the same stage2 or stage3
+
 	// Stage2, stage3, and report targets load after stage1 runs successfully.
 	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionId}/stage2",
 		http.HandlerFunc(env.GenerateJSONConfig))

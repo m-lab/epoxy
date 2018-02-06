@@ -55,16 +55,18 @@ type SessionIDs struct {
 	ReportID string // Needed for requesting the endstage target.
 }
 
-// Sequence ...
+// Sequence represents a set of operator-provided iPXE scripts or JSON nextboot Configs.
 type Sequence struct {
-	// Stage1ChainURL is the absolute URL to an iPXE script for booting stage1 to stage2.
-	Stage1ChainURL string // boot stage2 image
-	// Stage2ChainURL is the absolute URL to a JSON config for booting stage2 to stage3.
-	Stage2ChainURL string // boot stage3 update image, or coreos
-	// Stage3ChainURL is the absolute URL to a JSON config for running commands in stage3.
-	Stage3ChainURL string // flashrom, or join global k8s cluster.
+	// Stage1ChainURL is the absolute URL to an iPXE script for booting from stage1 to stage2.
+	Stage1ChainURL string
+	// Stage2ChainURL is the absolute URL to a JSON config for booting from stage2 to stage3.
+	Stage2ChainURL string
+	// Stage3ChainURL is the absolute URL to a JSON config for running commands in stage3. For
+	// example, "flashrom", or "join global k8s cluster".
+	Stage3ChainURL string
 }
 
+// NextURL returns the Chain URL corresponding to the given stage name.
 func (s Sequence) NextURL(stage string) string {
 	switch stage {
 	case "stage1":
@@ -86,7 +88,9 @@ type Host struct {
 	// IPv4Addr is the IPv4 address the booting machine will use to connect to the API.
 	IPv4Addr string
 
-	Boot   Sequence
+	// Boot is the typical boot sequence for this Host.
+	Boot Sequence
+	// Update is an alternate boot sequence, typically used to update the system, e.g. reinstall, reflash.
 	Update Sequence
 
 	// UpdateEnabled controls whether ePoxy returns the Update Sequence (true)

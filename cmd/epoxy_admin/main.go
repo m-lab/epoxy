@@ -20,47 +20,63 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"os"
 
 	"cloud.google.com/go/datastore"
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/kr/pretty"
 	"github.com/m-lab/epoxy/storage"
 	"golang.org/x/net/context"
 )
 
-var (
-	project  = flag.String("project", "mlab-sandbox", "GCP project ID.")
-	hostname = flag.String("hostname", "mlab3.iad1t.measurement-lab.org", "Hostname of new record.")
-	address  = flag.String("address", "165.117.240.35", "IP address of hostname.")
-	stage1   = flag.String("stage1",
-		"https://storage.googleapis.com/epoxy-sandbox/stage1/stage1.ipxe",
-		"Absolute URL to a stage1.ipxe script.")
-	stage2 = flag.String("stage2",
-		"https://storage.googleapis.com/epoxy-sandbox/stage2/stage2.json",
-		"Absolute URL to a stage2.json config.")
-	stage3 = flag.String("stage3",
-		"https://storage.googleapis.com/epoxy-sandbox/stage3/stage3.json",
-		"Absolute URL to a stage2.json config.")
-)
-
 const usage = `USAGE:
 **Only use for testing.**
+
 EXAMPLE:
-    create_sample_data --project mlab-sandbox \
+    epoxy_admin --project mlab-sandbox \
         --hostname mlab3.iad1t.measurement-lab.org \
         --address 165.117.240.35 \
         --stage1 https://storage.googleapis.com/epoxy-sandbox/stage1/stage1.ipxe
+        --stage2 https://storage.googleapis.com/epoxy-sandbox/stage2/stage2.ipxe
+        --stage3 https://storage.googleapis.com/epoxy-sandbox/stage3/stage3.ipxe
 `
+
+var (
+	fProject  string
+	fHostname string
+	fAddress  string
+	fStage1   string
+	fStage2   string
+	fStage3   string
+)
+
+func init() {
+	// Add an alternate usage message.
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, usage)
+		flag.PrintDefaults()
+	}
+	flag.StringVar(&fProject, "project", "mlab-sandbox", "GCP project ID.")
+	flag.StringVar(&fHostname, "hostname", "mlab3.iad1t.measurement-lab.org", "Hostname of new record.")
+	flag.StringVar(&fAddress, "address", "165.117.240.35", "IP address of hostname.")
+	flag.StringVar(&fStage1, "stage1",
+		"https://storage.googleapis.com/epoxy-sandbox/stage1/stage1.ipxe",
+		"Absolute URL to a stage1.ipxe script.")
+	flag.StringVar(&fStage2, "stage2",
+		"https://storage.googleapis.com/epoxy-sandbox/stage2/stage2.json",
+		"Absolute URL to a stage2.json config.")
+	flag.StringVar(&fStage3, "stage3",
+		"https://storage.googleapis.com/epoxy-sandbox/stage3/stage3.json",
+		"Absolute URL to a stage2.json config.")
+}
 
 func main() {
 	flag.Parse()
 
-	// Print usage unconditionally.
-	log.Println(usage)
-
 	// Setup Datastore client.
 	ctx := context.Background()
-	client, err := datastore.NewClient(ctx, *project)
+	client, err := datastore.NewClient(ctx, fProject)
 	if err != nil {
 		log.Fatalf("Failed to create new datastore client: %s", err)
 	}
@@ -68,12 +84,12 @@ func main() {
 	// Save the host record to Datstore.
 	ds := storage.NewDatastoreConfig(client)
 	h := &storage.Host{
-		Name:     *hostname,
-		IPv4Addr: *address,
+		Name:     fHostname,
+		IPv4Addr: fAddress,
 		Boot: storage.Sequence{
-			Stage1ChainURL: *stage1,
-			Stage2ChainURL: *stage2,
-			Stage3ChainURL: *stage3,
+			Stage1ChainURL: fStage1,
+			Stage2ChainURL: fStage2,
+			Stage3ChainURL: fStage3,
 		},
 	}
 	if err = ds.Save(h); err != nil {

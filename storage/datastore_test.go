@@ -16,12 +16,12 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
 
 	"cloud.google.com/go/datastore"
-	"golang.org/x/net/context"
 )
 
 // fakeDatastoreClient implements the datastoreClient interface for testing.

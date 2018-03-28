@@ -35,6 +35,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -44,7 +45,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/m-lab/epoxy/handler"
 	"github.com/m-lab/epoxy/storage"
-	"golang.org/x/net/context"
 )
 
 var (

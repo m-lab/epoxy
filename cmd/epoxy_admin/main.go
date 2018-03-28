@@ -19,6 +19,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -27,7 +28,6 @@ import (
 	"cloud.google.com/go/datastore"
 	"github.com/kr/pretty"
 	"github.com/m-lab/epoxy/storage"
-	"golang.org/x/net/context"
 )
 
 const usage = `USAGE:
@@ -37,9 +37,9 @@ EXAMPLE:
     epoxy_admin --project mlab-sandbox \
         --hostname mlab3.iad1t.measurement-lab.org \
         --address 165.117.240.35 \
-        --stage1 https://storage.googleapis.com/epoxy-sandbox/stage1/stage1.ipxe
-        --stage2 https://storage.googleapis.com/epoxy-sandbox/stage2/stage2.ipxe
-        --stage3 https://storage.googleapis.com/epoxy-sandbox/stage3/stage3.ipxe
+        --stage1 https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage1to2.ipxe
+        --stage2 https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage2to3.json
+        --stage3 https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage3post.json
 `
 
 var (
@@ -61,14 +61,14 @@ func init() {
 	flag.StringVar(&fHostname, "hostname", "mlab3.iad1t.measurement-lab.org", "Hostname of new record.")
 	flag.StringVar(&fAddress, "address", "165.117.240.35", "IP address of hostname.")
 	flag.StringVar(&fStage1, "stage1",
-		"https://storage.googleapis.com/epoxy-sandbox/stage1/stage1.ipxe",
-		"Absolute URL to a stage1.ipxe script.")
+		"https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage1to2.ipxe",
+		"Absolute URL to an action definition to run during stage1 to boot stage2.")
 	flag.StringVar(&fStage2, "stage2",
-		"https://storage.googleapis.com/epoxy-sandbox/stage2/stage2.json",
-		"Absolute URL to a stage2.json config.")
+		"https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage2to3.json",
+		"Absolute URL to an action definition to run during stage2 to boot stage3.")
 	flag.StringVar(&fStage3, "stage3",
-		"https://storage.googleapis.com/epoxy-sandbox/stage3/stage3.json",
-		"Absolute URL to a stage2.json config.")
+		"https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage3post.json",
+		"Absolute URL to an action definition to run after booting stage3.")
 }
 
 func main() {
@@ -101,5 +101,5 @@ func main() {
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
-	pretty.Print(h2)
+	pretty.Print(h2.String())
 }

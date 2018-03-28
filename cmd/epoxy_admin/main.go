@@ -61,13 +61,13 @@ func init() {
 	flag.StringVar(&fHostname, "hostname", "mlab3.iad1t.measurement-lab.org", "Hostname of new record.")
 	flag.StringVar(&fAddress, "address", "165.117.240.35", "IP address of hostname.")
 	flag.StringVar(&fStage1, "stage1",
-		"https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage1to2.ipxe",
+		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_coreos/stage1to2.ipxe",
 		"Absolute URL to an action definition to run during stage1 to boot stage2.")
 	flag.StringVar(&fStage2, "stage2",
-		"https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage2to3.json",
+		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_coreos/stage2to3.json",
 		"Absolute URL to an action definition to run during stage2 to boot stage3.")
 	flag.StringVar(&fStage3, "stage3",
-		"https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage3post.json",
+		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_coreos/stage3post.json",
 		"Absolute URL to an action definition to run after booting stage3.")
 }
 

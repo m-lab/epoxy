@@ -46,10 +46,11 @@ func main() {
 	err = c.Run(*flagAction, *flagDryrun)
 	if err != nil {
 		// Define a successful result.
-		result = err.Error()
+		result = "error: " + err.Error()
 	} else {
 		result = "success"
 	}
+	log.Println("Result:", result)
 
 	// Report a message to the ePoxy server after running.
 	values := url.Values{}

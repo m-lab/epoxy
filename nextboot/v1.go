@@ -533,8 +533,9 @@ func postWithTimeout(url string, values url.Values, timeout time.Duration) (*htt
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel() // cancel the context if Do() returns before timeout.
+	ctx, _ := context.WithTimeout(context.Background(), timeout)
+	// TODO: handle timeout cancel appropriately. https://github.com/m-lab/epoxy/issues/34
+	// defer cancel() // cancel the context if Do() returns before timeout.
 	req = req.WithContext(ctx)
 
 	client := &http.Client{}

@@ -48,8 +48,6 @@ type Env struct {
 func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 	hostname := mux.Vars(req)["hostname"]
 
-	log.Println(`{"severity": "okay", "message": "this is a test"}`)
-
 	// Use hostname as key to load record from Datastore.
 	host, err := env.Config.Load(hostname)
 	if err != nil {

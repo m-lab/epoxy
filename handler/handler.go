@@ -22,6 +22,7 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/m-lab/epoxy/storage"
@@ -84,7 +85,7 @@ func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 func (env *Env) GenerateJSONConfig(rw http.ResponseWriter, req *http.Request) {
 	hostname := mux.Vars(req)["hostname"]
 	// TODO: Verify that the sessionID matches the host.CurrentSessionIDs.Stage2ID.
-	// sessionId := mux.Vars(req)["sessionID"]
+	// sessionID := mux.Vars(req)["sessionID"]
 
 	// Use hostname as key to load record from Datastore.
 	host, err := env.Config.Load(hostname)
@@ -113,11 +114,38 @@ func (env *Env) GenerateJSONConfig(rw http.ResponseWriter, req *http.Request) {
 // success or failure. In both cases, the session ids are invalidated. In all cases,
 // epoxy_client is expected to report the server's public host key.
 func (env *Env) ReceiveReport(rw http.ResponseWriter, req *http.Request) {
-	// TODO: ParseForm in req.Body()
 	// TODO: log or save values where appropriate.
 	req.ParseForm()
+
+	// Use hostname as key to load record from Datastore.
+	hostname := mux.Vars(req)["hostname"]
+	host, err := env.Config.Load(hostname)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	// Verify sessionID matches the host record (i.e. request is authorized).
+	sessionID := mux.Vars(req)["sessionID"]
+	if sessionID != host.CurrentSessionIDs.ReportID {
+		http.Error(rw, "Given session ID does not match host record", http.StatusForbidden)
+		return
+	}
+
+	t := time.Now()
+	host.LastReport = t
+	status := req.PostForm.Get("message")
+	if status == "success" {
+		host.LastSuccess = t
+		host.UpdateEnabled = false
+	}
+
+	log.Println(`{"severity": "okay", "message": "this is a test"}`)
+	// TODO: log these values better...
 	log.Println(req.PostForm)
 	// TODO: invalidate session ids.
+
+	// Report success with no content.
 	rw.WriteHeader(http.StatusNoContent)
 	return
 }

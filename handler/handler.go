@@ -118,8 +118,6 @@ func (env *Env) GenerateJSONConfig(rw http.ResponseWriter, req *http.Request) {
 func (env *Env) ReceiveReport(rw http.ResponseWriter, req *http.Request) {
 	// TODO: log or save values where appropriate.
 	req.ParseForm()
-	// b, err := ioutil.ReadAll(req.Body)
-	// fmt.Println(string(b))
 
 	// Use hostname as key to load record from Datastore.
 	hostname := mux.Vars(req)["hostname"]
@@ -144,6 +142,7 @@ func (env *Env) ReceiveReport(rw http.ResponseWriter, req *http.Request) {
 		// When the status is success, disable the "update" and mark the time.
 		host.LastSuccess = host.LastReport
 		host.UpdateEnabled = false
+		// TODO: invalidate session ids.
 	}
 
 	// Save the new host state.
@@ -152,10 +151,8 @@ func (env *Env) ReceiveReport(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Println(`{"severity": "okay", "message": "this is a test"}`)
-	// TODO: log these values better...
+	// TODO: log using structured JSON.
 	log.Println(req.PostForm)
-	// TODO: invalidate session ids.
 
 	// Report success with no content.
 	rw.WriteHeader(http.StatusNoContent)

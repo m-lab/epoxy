@@ -242,30 +242,50 @@ func TestEnv_GenerateJSONConfig(t *testing.T) {
 
 func TestEnv_ReceiveReport(t *testing.T) {
 	h := &storage.Host{
-		Name:          "mlab1.iad1t.measurement-lab.org",
-		IPv4Addr:      "165.117.240.9",
-		UpdateEnabled: true,
+		Name:     "mlab1.iad1t.measurement-lab.org",
+		IPv4Addr: "165.117.240.9",
 		CurrentSessionIDs: storage.SessionIDs{
 			ReportID: "12345",
 		},
 	}
 	tests := []struct {
-		name   string
-		status int
-		form   url.Values
+		name            string
+		sessionID       string
+		expectedStatus  int
+		expectedEnabled bool
+		form            url.Values
 	}{
 		{
-			name:   "disable-update-enabled",
-			status: http.StatusNoContent,
+			name:            "disable-update-enabled-on-success",
+			sessionID:       "12345",
+			expectedStatus:  http.StatusNoContent,
+			expectedEnabled: false,
 			form: url.Values{
 				"message": []string{"success"},
 			},
 		},
+		{
+			name:            "preserve-update-enabled-on-failure",
+			sessionID:       "12345",
+			expectedStatus:  http.StatusNoContent,
+			expectedEnabled: true,
+			form: url.Values{
+				"message": []string{"error: something failed"},
+			},
+		},
+		{
+			name:            "bad-session-returns-forbidden",
+			sessionID:       "mismatched-session-id",
+			expectedStatus:  http.StatusForbidden,
+			expectedEnabled: true,
+			form:            url.Values{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			vars := map[string]string{"hostname": h.Name, "sessionID": h.CurrentSessionIDs.ReportID}
+			vars := map[string]string{"hostname": h.Name, "sessionID": tt.sessionID}
 			path := "/v1/boot/mlab1.iad1t.measurement-lab.org/12345/report"
+			h.UpdateEnabled = true
 
 			req := httptest.NewRequest("POST", path, strings.NewReader(tt.form.Encode()))
 			// Mark the body as form content to be read by ParseForm.
@@ -276,14 +296,14 @@ func TestEnv_ReceiveReport(t *testing.T) {
 			req = mux.SetURLVars(req, vars)
 			env.ReceiveReport(rec, req)
 
-			if rec.Code != tt.status {
-				t.Errorf("ReceiveReport() wrong HTTP status: got %v; want %v", rec.Code, tt.status)
+			if rec.Code != tt.expectedStatus {
+				t.Errorf("ReceiveReport() wrong HTTP status: got %v; want %v", rec.Code, tt.expectedStatus)
 			}
 
-			if h.UpdateEnabled {
-				t.Errorf("ReceiveReport() failed to change UpdateEnable: got %t; want false", h.UpdateEnabled)
+			if h.UpdateEnabled != tt.expectedEnabled {
+				t.Errorf("ReceiveReport() failed to change UpdateEnable: got %t; want %t",
+					h.UpdateEnabled, tt.expectedEnabled)
 			}
-
 		})
 	}
 }

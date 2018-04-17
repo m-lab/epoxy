@@ -301,7 +301,7 @@ func TestEnv_ReceiveReport(t *testing.T) {
 			}
 
 			if h.UpdateEnabled != tt.expectedEnabled {
-				t.Errorf("ReceiveReport() failed to change UpdateEnable: got %t; want %t",
+				t.Errorf("ReceiveReport() failed to change UpdateEnabled: got %t; want %t",
 					h.UpdateEnabled, tt.expectedEnabled)
 			}
 		})

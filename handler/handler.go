@@ -114,6 +114,7 @@ func (env *Env) GenerateJSONConfig(rw http.ResponseWriter, req *http.Request) {
 // success or failure. In both cases, the session ids are invalidated. In all cases,
 // epoxy_client is expected to report the server's public host key.
 func (env *Env) ReceiveReport(rw http.ResponseWriter, req *http.Request) {
+	// TODO: Verify that the source IP maches the host IP.
 	// TODO: log or save values where appropriate.
 	req.ParseForm()
 

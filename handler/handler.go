@@ -134,8 +134,6 @@ func (env *Env) ReceiveReport(rw http.ResponseWriter, req *http.Request) {
 
 	host.LastReport = time.Now()
 	status := req.PostForm.Get("message")
-	fmt.Println("status:", status)
-	fmt.Println(req.PostForm)
 	if status == "success" {
 		// When the status is success, disable the "update" and mark the time.
 		host.LastSuccess = host.LastReport

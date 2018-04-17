@@ -221,7 +221,7 @@ func TestEnv_GenerateJSONConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			vars := map[string]string{"hostname": h.Name, "sessionId": h.CurrentSessionIDs.Stage2ID}
+			vars := map[string]string{"hostname": h.Name, "sessionID": h.CurrentSessionIDs.Stage2ID}
 			path := "/v1/boot/mlab1.iad1t.measurement-lab.org/12345/stage2"
 			req := httptest.NewRequest("POST", path, nil)
 			rec := httptest.NewRecorder()
@@ -249,29 +249,61 @@ func TestEnv_ReceiveReport(t *testing.T) {
 		},
 	}
 	tests := []struct {
-		name   string
-		status int
+		name            string
+		sessionID       string
+		expectedStatus  int
+		expectedEnabled bool
+		form            url.Values
 	}{
 		{
-			name:   "place-holder",
-			status: http.StatusNoContent,
+			name:            "disable-update-enabled-on-success",
+			sessionID:       "12345",
+			expectedStatus:  http.StatusNoContent,
+			expectedEnabled: false,
+			form: url.Values{
+				"message": []string{"success"},
+			},
+		},
+		{
+			name:            "preserve-update-enabled-on-failure",
+			sessionID:       "12345",
+			expectedStatus:  http.StatusNoContent,
+			expectedEnabled: true,
+			form: url.Values{
+				"message": []string{"error: something failed"},
+			},
+		},
+		{
+			name:            "bad-session-returns-forbidden",
+			sessionID:       "mismatched-session-id",
+			expectedStatus:  http.StatusForbidden,
+			expectedEnabled: true,
+			form:            url.Values{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			vars := map[string]string{"hostname": h.Name, "sessionId": h.CurrentSessionIDs.Stage2ID}
+			vars := map[string]string{"hostname": h.Name, "sessionID": tt.sessionID}
 			path := "/v1/boot/mlab1.iad1t.measurement-lab.org/12345/report"
-			req := httptest.NewRequest("POST", path, nil)
+			h.UpdateEnabled = true
+
+			req := httptest.NewRequest("POST", path, strings.NewReader(tt.form.Encode()))
+			// Mark the body as form content to be read by ParseForm.
+			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 			rec := httptest.NewRecorder()
 
 			env := &Env{fakeConfig{host: h, failOnLoad: false, failOnSave: false}, "server.com:4321"}
 			req = mux.SetURLVars(req, vars)
 			env.ReceiveReport(rec, req)
 
-			if rec.Code != tt.status {
-				t.Errorf("GenerateJSONConfig() wrong HTTP status: got %v; want %v", rec.Code, tt.status)
+			if rec.Code != tt.expectedStatus {
+				t.Errorf("ReceiveReport() wrong HTTP status: got %v; want %v", rec.Code, tt.expectedStatus)
 			}
 
+			if h.UpdateEnabled != tt.expectedEnabled {
+				t.Errorf("ReceiveReport() failed to change UpdateEnabled: got %t; want %t",
+					h.UpdateEnabled, tt.expectedEnabled)
+			}
 		})
 	}
 }

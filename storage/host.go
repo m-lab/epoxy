@@ -108,6 +108,10 @@ type Host struct {
 	CurrentSessionIDs SessionIDs
 	// LastSessionCreation is the time when CurrentSessionIDs was generated.
 	LastSessionCreation time.Time
+	// LastReport is the time of the most recent report for this host.
+	LastReport time.Time
+	// LastSuccess is the time of the most recent successful report from this host.
+	LastSuccess time.Time
 	// CollectedInformation reported by the host.
 	CollectedInformation CollectedInformation
 }

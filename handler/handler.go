@@ -48,6 +48,8 @@ type Env struct {
 func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 	hostname := mux.Vars(req)["hostname"]
 
+	log.Println(`{"severity": "okay", "message": "this is a test"}`)
+
 	// Use hostname as key to load record from Datastore.
 	host, err := env.Config.Load(hostname)
 	if err != nil {
@@ -116,6 +118,8 @@ func (env *Env) GenerateJSONConfig(rw http.ResponseWriter, req *http.Request) {
 func (env *Env) ReceiveReport(rw http.ResponseWriter, req *http.Request) {
 	// TODO: log or save values where appropriate.
 	req.ParseForm()
+	// b, err := ioutil.ReadAll(req.Body)
+	// fmt.Println(string(b))
 
 	// Use hostname as key to load record from Datastore.
 	hostname := mux.Vars(req)["hostname"]
@@ -132,12 +136,20 @@ func (env *Env) ReceiveReport(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	t := time.Now()
-	host.LastReport = t
+	host.LastReport = time.Now()
 	status := req.PostForm.Get("message")
+	fmt.Println("status:", status)
+	fmt.Println(req.PostForm)
 	if status == "success" {
-		host.LastSuccess = t
+		// When the status is success, disable the "update" and mark the time.
+		host.LastSuccess = host.LastReport
 		host.UpdateEnabled = false
+	}
+
+	// Save the new host state.
+	if err := env.Config.Save(host); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	log.Println(`{"severity": "okay", "message": "this is a test"}`)

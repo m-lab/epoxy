@@ -242,8 +242,9 @@ func TestEnv_GenerateJSONConfig(t *testing.T) {
 
 func TestEnv_ReceiveReport(t *testing.T) {
 	h := &storage.Host{
-		Name:     "mlab1.iad1t.measurement-lab.org",
-		IPv4Addr: "165.117.240.9",
+		Name:          "mlab1.iad1t.measurement-lab.org",
+		IPv4Addr:      "165.117.240.9",
+		UpdateEnabled: true,
 		CurrentSessionIDs: storage.SessionIDs{
 			ReportID: "12345",
 		},
@@ -251,17 +252,24 @@ func TestEnv_ReceiveReport(t *testing.T) {
 	tests := []struct {
 		name   string
 		status int
+		form   url.Values
 	}{
 		{
-			name:   "place-holder",
+			name:   "disable-update-enabled",
 			status: http.StatusNoContent,
+			form: url.Values{
+				"message": []string{"success"},
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			vars := map[string]string{"hostname": h.Name, "sessionID": h.CurrentSessionIDs.ReportID}
 			path := "/v1/boot/mlab1.iad1t.measurement-lab.org/12345/report"
-			req := httptest.NewRequest("POST", path, nil)
+
+			req := httptest.NewRequest("POST", path, strings.NewReader(tt.form.Encode()))
+			// Mark the body as form content to be read by ParseForm.
+			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 			rec := httptest.NewRecorder()
 
 			env := &Env{fakeConfig{host: h, failOnLoad: false, failOnSave: false}, "server.com:4321"}
@@ -269,7 +277,11 @@ func TestEnv_ReceiveReport(t *testing.T) {
 			env.ReceiveReport(rec, req)
 
 			if rec.Code != tt.status {
-				t.Errorf("GenerateJSONConfig() wrong HTTP status: got %v; want %v", rec.Code, tt.status)
+				t.Errorf("ReceiveReport() wrong HTTP status: got %v; want %v", rec.Code, tt.status)
+			}
+
+			if h.UpdateEnabled {
+				t.Errorf("ReceiveReport() failed to change UpdateEnable: got %t; want false", h.UpdateEnabled)
 			}
 
 		})

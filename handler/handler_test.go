@@ -221,7 +221,7 @@ func TestEnv_GenerateJSONConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			vars := map[string]string{"hostname": h.Name, "sessionId": h.CurrentSessionIDs.Stage2ID}
+			vars := map[string]string{"hostname": h.Name, "sessionID": h.CurrentSessionIDs.Stage2ID}
 			path := "/v1/boot/mlab1.iad1t.measurement-lab.org/12345/stage2"
 			req := httptest.NewRequest("POST", path, nil)
 			rec := httptest.NewRecorder()
@@ -259,7 +259,7 @@ func TestEnv_ReceiveReport(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			vars := map[string]string{"hostname": h.Name, "sessionId": h.CurrentSessionIDs.Stage2ID}
+			vars := map[string]string{"hostname": h.Name, "sessionID": h.CurrentSessionIDs.ReportID}
 			path := "/v1/boot/mlab1.iad1t.measurement-lab.org/12345/report"
 			req := httptest.NewRequest("POST", path, nil)
 			rec := httptest.NewRecorder()

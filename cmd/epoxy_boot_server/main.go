@@ -105,11 +105,11 @@ func newRouter(env *handler.Env) *mux.Router {
 	///the case where not every machine has the same stage2 or stage3
 
 	// Stage2, stage3, and report targets load after stage1 runs successfully.
-	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionId}/stage2",
+	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionID}/stage2",
 		http.HandlerFunc(env.GenerateJSONConfig))
-	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionId}/stage3",
+	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionID}/stage3",
 		http.HandlerFunc(env.GenerateJSONConfig))
-	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionId}/report",
+	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionID}/report",
 		http.HandlerFunc(env.ReceiveReport))
 
 	// TODO(soltesz): add a target or retrieving all published SSH host keys.

@@ -42,6 +42,8 @@ func TestHostString(t *testing.T) {
         "ReportID": "13579"
     },
     "LastSessionCreation": "2016-01-02T15:04:00Z",
+    "LastReport": "0001-01-01T00:00:00Z",
+    "LastSuccess": "0001-01-01T00:00:00Z",
     "CollectedInformation": {
         "Platform": "",
         "BuildArch": "",

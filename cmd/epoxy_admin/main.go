@@ -16,6 +16,9 @@
 // A minimal client for adding Host records to Datastore for testing. This
 // command is ONLY for testing. Host record management by direct access to
 // Datastore will not be supported by ePoxy.
+//
+// TODO:
+//   * Create distinct subcommands, e.g. create, update, delete.
 package main
 
 import (
@@ -31,24 +34,28 @@ import (
 )
 
 const usage = `USAGE:
-**Only use for testing.**
+**ONLY USE FOR TESTING**
 
 EXAMPLE:
     epoxy_admin --project mlab-sandbox \
         --hostname mlab3.iad1t.measurement-lab.org \
         --address 165.117.240.35 \
-        --stage1 https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage1to2.ipxe
-        --stage2 https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage2to3.json
-        --stage3 https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage3post.json
+        --boot-stage1 https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage1to2.ipxe
+        --boot-stage2 https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage2to3.json
+        --boot-stage3 https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage3post.json
 `
 
 var (
-	fProject  string
-	fHostname string
-	fAddress  string
-	fStage1   string
-	fStage2   string
-	fStage3   string
+	fProject      string
+	fHostname     string
+	fAddress      string
+	fUpdate       bool
+	fBootStage1   string
+	fBootStage2   string
+	fBootStage3   string
+	fUpdateStage1 string
+	fUpdateStage2 string
+	fUpdateStage3 string
 )
 
 func init() {
@@ -60,14 +67,25 @@ func init() {
 	flag.StringVar(&fProject, "project", "mlab-sandbox", "GCP project ID.")
 	flag.StringVar(&fHostname, "hostname", "mlab3.iad1t.measurement-lab.org", "Hostname of new record.")
 	flag.StringVar(&fAddress, "address", "165.117.240.35", "IP address of hostname.")
-	flag.StringVar(&fStage1, "stage1",
+	flag.BoolVar(&fUpdate, "update", false,
+		"Set Host.UpdateEnabled to true for an existing Host. Do not specify when creating a new Host.")
+	flag.StringVar(&fBootStage1, "boot-stage1",
 		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_coreos/stage1to2.ipxe",
 		"Absolute URL to an action definition to run during stage1 to boot stage2.")
-	flag.StringVar(&fStage2, "stage2",
+	flag.StringVar(&fBootStage2, "boot-stage2",
 		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_coreos/stage2to3.json",
 		"Absolute URL to an action definition to run during stage2 to boot stage3.")
-	flag.StringVar(&fStage3, "stage3",
+	flag.StringVar(&fBootStage3, "boot-stage3",
 		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_coreos/stage3post.json",
+		"Absolute URL to an action definition to run after booting stage3.")
+	flag.StringVar(&fUpdateStage1, "update-stage1",
+		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_mlxupdate/stage1to2.ipxe",
+		"Absolute URL to an action definition to run during stage1 to boot stage2.")
+	flag.StringVar(&fUpdateStage2, "update-stage2",
+		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_mlxupdate/stage2to3.json",
+		"Absolute URL to an action definition to run during stage2 to boot stage3.")
+	flag.StringVar(&fUpdateStage3, "update-stage3",
+		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_mlxupdate/stage3post.json",
 		"Absolute URL to an action definition to run after booting stage3.")
 }
 
@@ -83,14 +101,35 @@ func main() {
 
 	// Save the host record to Datstore.
 	ds := storage.NewDatastoreConfig(client)
-	h := &storage.Host{
-		Name:     fHostname,
-		IPv4Addr: fAddress,
-		Boot: storage.Sequence{
-			Stage1ChainURL: fStage1,
-			Stage2ChainURL: fStage2,
-			Stage3ChainURL: fStage3,
-		},
+	var h *storage.Host
+	var err error
+
+	if fUpdate {
+		// Retrieve the host record from Datastore before updating it.
+		h, err = ds.Load(fHostname)
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
+		h.UpdateEnabled = true
+
+	} else {
+
+		// Create a new host record.
+		h = &storage.Host{
+			Name:          fHostname,
+			IPv4Addr:      fAddress,
+			UpdateEnabled: fUpdate,
+			Boot: storage.Sequence{
+				Stage1ChainURL: fBootStage1,
+				Stage2ChainURL: fBootStage2,
+				Stage3ChainURL: fBootStage3,
+			},
+			Update: storage.Sequence{
+				Stage1ChainURL: fUpdateStage1,
+				Stage2ChainURL: fUpdateStage2,
+				Stage3ChainURL: fUpdateStage3,
+			},
+		}
 	}
 	if err = ds.Save(h); err != nil {
 		log.Fatalf("%s", err)

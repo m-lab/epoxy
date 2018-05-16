@@ -29,9 +29,9 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/m-lab/epoxy/extension"
 	"github.com/m-lab/epoxy/storage"
 	"github.com/m-lab/epoxy/template"
-	"src/github.com/m-lab/epoxy/extension"
 )
 
 // Config provides access to Host records.

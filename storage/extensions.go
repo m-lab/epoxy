@@ -32,6 +32,7 @@ var (
 	// TODO: save/retrieve extension configuration in/from datastore.
 	// This static map is for preliminary testing.
 	Extensions map[string]string = map[string]string{
-		"k8stoken": "http://k8s-platform-master.mlab-sandbox.measurementlab.net:8000",
+		"k8stoken":  "http://k8s-platform-master.mlab-sandbox.measurementlab.net:8000",
+		"operation": "http://10.142.0.2:8001/operation",
 	}
 )

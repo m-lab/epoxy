@@ -111,6 +111,8 @@ func newRouter(env *handler.Env) *mux.Router {
 		http.HandlerFunc(env.GenerateJSONConfig))
 	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionID}/report",
 		http.HandlerFunc(env.ReceiveReport))
+	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionID}/extension/{operation}",
+		http.HandlerFunc(env.HandleExtension))
 
 	// TODO(soltesz): add a target or retrieving all published SSH host keys.
 	// addRoute(router, "GET", "/v1/boot/known_hosts", getKnownHosts)

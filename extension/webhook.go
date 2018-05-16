@@ -19,6 +19,8 @@ package extension
 
 import (
 	"encoding/json"
+	"io"
+	"io/ioutil"
 	"time"
 )
 
@@ -53,6 +55,10 @@ func (req *WebhookRequest) Encode() string {
 }
 
 // Decode unmarshals a WebhookRequest from a JSON message.
-func (req *WebhookRequest) Decode(message []byte) error {
-	return json.Unmarshal(message, req)
+func (req *WebhookRequest) Decode(msg io.Reader) error {
+	raw, err := ioutil.ReadAll(msg)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(raw, req)
 }

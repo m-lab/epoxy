@@ -13,7 +13,7 @@
 // limitations under the License.
 //////////////////////////////////////////////////////////////////////////////
 
-// Package extention defines the Extension Webhook API used between the ePoxy
+// Package extension defines the Extension Webhook API used between the ePoxy
 // server and extension services.
 package extension
 

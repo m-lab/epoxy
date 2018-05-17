@@ -204,11 +204,6 @@ func (env *Env) HandleExtension(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
-	// TODO: support multiple operations.
-	if operation != "k8stoken" {
-		http.Error(rw, "Only the k8stoken operation is supported", http.StatusBadRequest)
-		return
-	}
 	// TODO: load extension URL from datastore.
 	if _, ok := storage.Extensions[operation]; !ok {
 		http.Error(rw, "Unknown Extension for operation: "+operation, http.StatusInternalServerError)

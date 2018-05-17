@@ -30,6 +30,8 @@ set stage1chain_url https://example.com/path/stage1to2/stage1to2.ipxe
 set stage2_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/01234/stage2
 set stage3_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/56789/stage3
 set report_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/86420/report
+set ext1_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/75319/extension/ext1
+set ext2_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/75319/extension/ext2
 
 chain ${stage1chain_url}
 `
@@ -43,10 +45,12 @@ func TestFormatStage1IPXEScript(t *testing.T) {
 		Boot: storage.Sequence{
 			Stage1ChainURL: "https://example.com/path/stage1to2/stage1to2.ipxe",
 		},
+		Extensions: []string{"ext1", "ext2"},
 		CurrentSessionIDs: storage.SessionIDs{
-			Stage2ID: "01234",
-			Stage3ID: "56789",
-			ReportID: "86420",
+			Stage2ID:    "01234",
+			Stage3ID:    "56789",
+			ReportID:    "86420",
+			ExtensionID: "75319",
 		},
 	}
 

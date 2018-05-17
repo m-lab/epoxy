@@ -201,7 +201,7 @@ func (env *Env) HandleExtension(rw http.ResponseWriter, req *http.Request) {
 
 	operation := mux.Vars(req)["operation"]
 	if len(operation) == 0 {
-		http.Error(rw, err.Error(), http.StatusBadRequest)
+		http.Error(rw, "Zero length operation is invalid", http.StatusBadRequest)
 		return
 	}
 	// TODO: load extension URL from datastore.

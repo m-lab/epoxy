@@ -29,11 +29,10 @@ type ExtentionOperation struct {
 }
 
 var (
+	// Extensions is a static map of operation names to extension URLS for testing.
 	// TODO: save/retrieve extension configuration in/from datastore.
-	// This static map is for preliminary testing.
-	Extensions map[string]string = map[string]string{
+	Extensions = map[string]string{
 		"k8stoken": "http://k8s-platform-master.c.mlab-sandbox.internal:8000/v1/operation",
 		"test_op":  "http://soltesz-epoxy-testing-instance-1.c.mlab-sandbox.internal:8001/operation",
-		"test_nx":  "http://not-a-real-name.c.mlab-sandbox.internal:8001/operation",
 	}
 )

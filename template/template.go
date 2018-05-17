@@ -60,6 +60,7 @@ func FormatStage1IPXEScript(h *storage.Host, serverAddr string) string {
 
 	// Construct an extension URL for all extensions this host supports.
 	extensionURLs := make(map[string]string, len(h.Extensions))
+	// TODO: verify that extensions actually exist. e.g. do not generate invalid urls.
 	for _, operation := range h.Extensions {
 		extensionURLs[operation] = fmt.Sprintf("https://%s/v1/boot/%s/%s/extension/%s",
 			serverAddr, h.Name, h.CurrentSessionIDs.ExtensionID, operation)

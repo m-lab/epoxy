@@ -36,7 +36,7 @@ set stage3_url {{ .Stage3URL }}
 set report_url {{ .ReportURL }}
 {{- range $key, $value := .Extensions }}
 set {{ $key }}_url {{ $value }}
-{{ end }}
+{{- end }}
 
 chain ${stage1chain_url}
 `

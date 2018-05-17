@@ -210,7 +210,7 @@ func (env *Env) HandleExtension(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	webreq := extension.WebhookRequest{
+	webreq := extension.Request{
 		V1: &extension.V1{
 			Hostname:    host.Name,
 			IPv4Address: host.IPv4Addr,

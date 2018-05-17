@@ -37,14 +37,14 @@ type returnMessage struct {
 }
 
 // operationHandler is an http.HandlerFunc for responding to an epoxy extension
-// WebhookRequest.
+// Request.
 func operationHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO: verify this is a POST request.
 	// TODO: verify this is from a trusted source.
 	var result *returnMessage
 
 	// Decode the webhook request.
-	ext := &extension.WebhookRequest{}
+	ext := &extension.Request{}
 	err := ext.Decode(r.Body)
 	// Prepare and respond to caller.
 	if err != nil {

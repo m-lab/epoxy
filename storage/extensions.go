@@ -23,7 +23,7 @@ type ExtentionOperation struct {
 	// URL references a service that implements the extension operation. During
 	// machine boot, when a machine requests the ePoxy extension URL, the ePoxy
 	// server will, in turn, issue a request to this URL, sending an
-	// extension.WebhookRequest message. The extension service response is
+	// extension.Request message. The extension service response is
 	// returned to the client verbatim.
 	URL string
 }

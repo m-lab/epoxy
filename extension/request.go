@@ -24,8 +24,8 @@ import (
 	"time"
 )
 
-// WebhookRequest contains information about a booting machine
-type WebhookRequest struct {
+// Request contains information about a booting machine
+type Request struct {
 
 	// V1 contains information to send to an extension service.
 	V1 *V1 `json:"v1,omitempty"`
@@ -47,15 +47,15 @@ type V1 struct {
 	LastBoot time.Time `json:"last_boot"`
 }
 
-// Encode marshals a WebhookRequest to JSON.
-func (req *WebhookRequest) Encode() string {
+// Encode marshals a Request to JSON.
+func (req *Request) Encode() string {
 	// Errors only occur for non-UTF8 characters in strings or unmarshalable types (which we don't have).
 	b, _ := json.MarshalIndent(req, "", "    ")
 	return string(b)
 }
 
-// Decode unmarshals a WebhookRequest from a JSON message.
-func (req *WebhookRequest) Decode(msg io.Reader) error {
+// Decode unmarshals a Request from a JSON message.
+func (req *Request) Decode(msg io.Reader) error {
 	raw, err := ioutil.ReadAll(msg)
 	if err != nil {
 		return err

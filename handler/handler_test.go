@@ -321,7 +321,7 @@ func TestEnv_HandleExtension(t *testing.T) {
 		LastSessionCreation: time.Date(2018, 5, 1, 0, 0, 0, 0, time.UTC),
 	}
 	// The webhook request that should be received by the extension server.
-	expectedWebhookRequest := &extension.WebhookRequest{
+	expectedRequest := &extension.Request{
 		V1: &extension.V1{
 			Hostname:    h.Name,
 			IPv4Address: h.IPv4Addr,
@@ -336,7 +336,7 @@ func TestEnv_HandleExtension(t *testing.T) {
 		urlPrefix       string
 		expectedStatus  int
 		expectedResult  string
-		expectedRequest *extension.WebhookRequest
+		expectedRequest *extension.Request
 	}{
 		{
 			name:            "successful-request",
@@ -344,7 +344,7 @@ func TestEnv_HandleExtension(t *testing.T) {
 			operation:       "foobar",
 			expectedStatus:  http.StatusOK,
 			expectedResult:  "okay",
-			expectedRequest: expectedWebhookRequest,
+			expectedRequest: expectedRequest,
 		},
 		{
 			name:            "failure-backend-returns-notfound",
@@ -352,7 +352,7 @@ func TestEnv_HandleExtension(t *testing.T) {
 			operation:       "foobar",
 			expectedStatus:  http.StatusNotFound,
 			expectedResult:  "not found",
-			expectedRequest: expectedWebhookRequest,
+			expectedRequest: expectedRequest,
 		},
 		{
 			name:           "failure-failonload",
@@ -398,10 +398,10 @@ func TestEnv_HandleExtension(t *testing.T) {
 			rec := httptest.NewRecorder()
 			env := &Env{fakeConfig{host: h, failOnLoad: tt.failOnLoad}, "server.com:4321"}
 			req = mux.SetURLVars(req, vars)
-			// Setup a fake extension server to handle the WebhookRequest.
+			// Setup a fake extension server to handle the Request.
 			ts := httptest.NewServer(
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					ext := &extension.WebhookRequest{}
+					ext := &extension.Request{}
 					err := ext.Decode(r.Body)
 					if err != nil {
 						// Decode failed, bad request.

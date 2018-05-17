@@ -311,6 +311,7 @@ func TestEnv_ReceiveReport(t *testing.T) {
 }
 
 func TestEnv_HandleExtension(t *testing.T) {
+	// Generic Host record for all tests.
 	h := &storage.Host{
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
@@ -319,7 +320,7 @@ func TestEnv_HandleExtension(t *testing.T) {
 		},
 		LastSessionCreation: time.Date(2018, 5, 1, 0, 0, 0, 0, time.UTC),
 	}
-	// The webhookd request that should be received by the extension server.
+	// The webhook request that should be received by the extension server.
 	expectedWebhookRequest := &extension.WebhookRequest{
 		V1: &extension.V1{
 			Hostname:    h.Name,
@@ -403,20 +404,20 @@ func TestEnv_HandleExtension(t *testing.T) {
 					ext := &extension.WebhookRequest{}
 					err := ext.Decode(r.Body)
 					if err != nil {
-						// Decode failed.
-						w.WriteHeader(http.StatusInternalServerError)
-					} else {
-						// Decode was successful, so make sure it's what we expect.
-						if !tt.expectedRequest.V1.LastBoot.Equal(ext.V1.LastBoot) ||
-							tt.expectedRequest.V1.Hostname != ext.V1.Hostname ||
-							tt.expectedRequest.V1.IPv4Address != ext.V1.IPv4Address ||
-							tt.expectedRequest.V1.IPv6Address != ext.V1.IPv6Address {
-							t.Errorf("HandleExtension() malformed webhook request: got %#v, want %#v",
-								ext.V1, tt.expectedRequest.V1)
-						}
-						// Unconditionally report the test-defined status.
-						w.WriteHeader(tt.expectedStatus)
+						// Decode failed, bad request.
+						w.WriteHeader(http.StatusBadRequest)
+						return
 					}
+					// Decode was successful, so make sure it's what we expect.
+					if !tt.expectedRequest.V1.LastBoot.Equal(ext.V1.LastBoot) ||
+						tt.expectedRequest.V1.Hostname != ext.V1.Hostname ||
+						tt.expectedRequest.V1.IPv4Address != ext.V1.IPv4Address ||
+						tt.expectedRequest.V1.IPv6Address != ext.V1.IPv6Address {
+						t.Errorf("HandleExtension() malformed webhook request: got %#v, want %#v",
+							ext.V1, tt.expectedRequest.V1)
+					}
+					// Unconditionally report the test-defined status.
+					w.WriteHeader(tt.expectedStatus)
 					w.Write([]byte(tt.expectedResult))
 				}))
 			defer ts.Close()

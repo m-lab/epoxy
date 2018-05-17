@@ -109,7 +109,7 @@ type Host struct {
 	// or Boot Sequence (false) Chain URLs.
 	UpdateEnabled bool
 
-	// Extensions is an arry of extensions enabled for this host.
+	// Extensions is an array of extension operation names enabled for this host.
 	Extensions []string
 
 	// CurrentSessionIDs are the most recently generated session ids for a booting machine.

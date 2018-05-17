@@ -33,7 +33,7 @@ var (
 	// This static map is for preliminary testing.
 	Extensions map[string]string = map[string]string{
 		"k8stoken": "http://k8s-platform-master.c.mlab-sandbox.internal:8000/v1/operation",
-		"test-op":  "http://soltesz-epoxy-testing-instance-1.c.mlab-sandbox.internal:8001/operation",
-		"test-nx":  "http://not-a-real-name.c.mlab-sandbox.internal:8001/operation",
+		"test_op":  "http://soltesz-epoxy-testing-instance-1.c.mlab-sandbox.internal:8001/operation",
+		"test_nx":  "http://not-a-real-name.c.mlab-sandbox.internal:8001/operation",
 	}
 )

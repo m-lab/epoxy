@@ -93,6 +93,14 @@ func newRouter(env *handler.Env) *mux.Router {
 	// A health checker for running in Docker or AppEngine.
 	addRoute(router, "GET", "/_ah/health", http.HandlerFunc(checkHealth))
 
+	///////////////////////////////////////////////////////////////////////////
+	// Boot stage targets.
+	//
+	// Immediately after boot, a maching unconditionally requests a stage1 target.
+	// After that, the machine should incrementally request the stage2, stage3, and
+	// report targets in sequence. As each is requested, the session ID for the
+	// previous is invalidated.
+
 	// Stage1 scripts are always the first script fetched by a booting machine.
 	// "stage1.ipxe" is the target for ROM-based iPXE clients.
 	addRoute(router, "POST", "/v1/boot/{hostname}/stage1.ipxe",
@@ -101,21 +109,30 @@ func newRouter(env *handler.Env) *mux.Router {
 	// TODO(soltesz): add a target for CD-based ePoxy clients.
 	// addRoute(router, "POST", "/v1/boot/{hostname}/stage1.json", generateStage1Json)
 
-	//TODO: make the names stage2 and stage3 arbitrary when we need to support
-	///the case where not every machine has the same stage2 or stage3
+	// TODO: make the names stage2 and stage3 arbitrary when we need to support
+	// the case where not every machine has the same stage2 or stage3.
 
-	// Stage2, stage3, and report targets load after stage1 runs successfully.
+	// TODO: consider placing stage sequence names under their own subpath, e.g.
+	//   /v1/boot/{hostname}/{sessionID}/stage/{stage}"
+
+	// Stage2, stage3, and report targets load after stage1 runs successfully. Stage2
+	// and stage3 targets return an epoxy action. The report target returns no content.
 	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionID}/stage2",
 		http.HandlerFunc(env.GenerateJSONConfig))
 	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionID}/stage3",
 		http.HandlerFunc(env.GenerateJSONConfig))
 	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionID}/report",
 		http.HandlerFunc(env.ReceiveReport))
+
+	///////////////////////////////////////////////////////////////////////////
+	// Extension targets.
+	//
+	// Extension operations may be requested at any time during boot. The session
+	// is revoked after successful use. Extensions may return any content type
+	// supported by the extension service.
 	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionID}/extension/{operation}",
 		http.HandlerFunc(env.HandleExtension))
 
-	// TODO(soltesz): add a target or retrieving all published SSH host keys.
-	// addRoute(router, "GET", "/v1/boot/known_hosts", getKnownHosts)
 	return router
 }
 
@@ -141,6 +158,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create new datastore client: %s", err)
 	}
-	env := &handler.Env{storage.NewDatastoreConfig(client), publicAddr}
+	env := &handler.Env{
+		Config:     storage.NewDatastoreConfig(client),
+		ServerAddr: publicAddr,
+	}
 	http.ListenAndServe(addr, newRouter(env))
 }

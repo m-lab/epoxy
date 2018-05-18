@@ -36,10 +36,12 @@ func TestHostString(t *testing.T) {
         "Stage3ChainURL": ""
     },
     "UpdateEnabled": false,
+    "Extensions": null,
     "CurrentSessionIDs": {
         "Stage2ID": "01234",
         "Stage3ID": "56789",
-        "ReportID": "13579"
+        "ReportID": "13579",
+        "ExtensionID": ""
     },
     "LastSessionCreation": "2016-01-02T15:04:00Z",
     "LastReport": "0001-01-01T00:00:00Z",

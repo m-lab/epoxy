@@ -24,7 +24,7 @@ import (
 	"github.com/renstrom/dedent"
 )
 
-func TestWebhookRequest_Encode(t *testing.T) {
+func TestRequest_Encode(t *testing.T) {
 	tests := []struct {
 		name string
 		v1   *V1
@@ -50,17 +50,17 @@ func TestWebhookRequest_Encode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := &WebhookRequest{
+			req := &Request{
 				V1: tt.v1,
 			}
 			if got := req.Encode(); got != tt.want[1:] {
-				t.Errorf("WebhookRequest.Encode() = %v, want %v", got, tt.want)
+				t.Errorf("Request.Encode() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestWebhookRequest_Decode(t *testing.T) {
+func TestRequest_Decode(t *testing.T) {
 	tests := []struct {
 		name     string
 		msg      io.Reader
@@ -92,17 +92,17 @@ func TestWebhookRequest_Decode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := &WebhookRequest{}
+			req := &Request{}
 			err := req.Decode(tt.msg)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("WebhookRequest.Decode() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Request.Decode() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !tt.wantErr &&
 				(!tt.expected.LastBoot.Equal(req.V1.LastBoot) ||
 					tt.expected.Hostname != req.V1.Hostname ||
 					tt.expected.IPv4Address != req.V1.IPv4Address ||
 					tt.expected.IPv6Address != req.V1.IPv6Address) {
-				t.Errorf("WebhookRequest.Decode() unexpected values: got %#v, want %#v",
+				t.Errorf("Request.Decode() unexpected values: got %#v, want %#v",
 					req.V1, tt.expected)
 			}
 		})

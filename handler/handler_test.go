@@ -23,8 +23,10 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/m-lab/epoxy/extension"
 	"github.com/m-lab/epoxy/nextboot"
 	"github.com/m-lab/epoxy/storage"
 )
@@ -303,6 +305,136 @@ func TestEnv_ReceiveReport(t *testing.T) {
 			if h.UpdateEnabled != tt.expectedEnabled {
 				t.Errorf("ReceiveReport() failed to change UpdateEnabled: got %t; want %t",
 					h.UpdateEnabled, tt.expectedEnabled)
+			}
+		})
+	}
+}
+
+func TestEnv_HandleExtension(t *testing.T) {
+	// Generic Host record for all tests.
+	h := &storage.Host{
+		Name:     "mlab1.iad1t.measurement-lab.org",
+		IPv4Addr: "165.117.240.9",
+		CurrentSessionIDs: storage.SessionIDs{
+			ExtensionID: "12345",
+		},
+		LastSessionCreation: time.Date(2018, 5, 1, 0, 0, 0, 0, time.UTC),
+	}
+	// The request that should be received by the extension server.
+	expectedRequest := &extension.Request{
+		V1: &extension.V1{
+			Hostname:    h.Name,
+			IPv4Address: h.IPv4Addr,
+			LastBoot:    h.LastSessionCreation,
+		},
+	}
+	tests := []struct {
+		name            string
+		sessionID       string
+		operation       string
+		failOnLoad      bool
+		urlPrefix       string
+		expectedStatus  int
+		expectedResult  string
+		expectedRequest *extension.Request
+	}{
+		{
+			name:            "successful-request",
+			sessionID:       "12345",
+			operation:       "foobar",
+			expectedStatus:  http.StatusOK,
+			expectedResult:  "okay",
+			expectedRequest: expectedRequest,
+		},
+		{
+			name:            "failure-backend-returns-notfound",
+			sessionID:       "12345",
+			operation:       "foobar",
+			expectedStatus:  http.StatusNotFound,
+			expectedResult:  "not found",
+			expectedRequest: expectedRequest,
+		},
+		{
+			name:           "failure-failonload",
+			failOnLoad:     true,
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:           "failure-bad-sessionid",
+			sessionID:      "54321",
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			name:           "failure-zerolength-operation",
+			sessionID:      "12345",
+			operation:      "",
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "failure-unknown-operation",
+			sessionID:      "12345",
+			operation:      "unknown",
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "failure-parsing-extension-url",
+			sessionID:      "12345",
+			operation:      "foobar",
+			urlPrefix:      ":", // with this character, the backend URL will fail to parse.
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Pseudo variables for mux.Vars.
+			vars := map[string]string{
+				"hostname":  h.Name,
+				"sessionID": tt.sessionID,
+				"operation": tt.operation,
+			}
+			extURL := "/v1/boot/mlab1.iad1t.measurement-lab.org/12345/extension/foobar"
+
+			req := httptest.NewRequest("POST", extURL, nil)
+			rec := httptest.NewRecorder()
+			env := &Env{fakeConfig{host: h, failOnLoad: tt.failOnLoad}, "server.com:4321"}
+			req = mux.SetURLVars(req, vars)
+			// Setup a fake extension server to handle the Request.
+			ts := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					ext := &extension.Request{}
+					err := ext.Decode(r.Body)
+					if err != nil {
+						// Decode failed, bad request.
+						w.WriteHeader(http.StatusBadRequest)
+						return
+					}
+					// Decode was successful, so make sure it's what we expect.
+					if !tt.expectedRequest.V1.LastBoot.Equal(ext.V1.LastBoot) ||
+						tt.expectedRequest.V1.Hostname != ext.V1.Hostname ||
+						tt.expectedRequest.V1.IPv4Address != ext.V1.IPv4Address ||
+						tt.expectedRequest.V1.IPv6Address != ext.V1.IPv6Address {
+						t.Errorf("HandleExtension() malformed request: got %#v, want %#v",
+							ext.V1, tt.expectedRequest.V1)
+					}
+					// Unconditionally report the test-defined status.
+					w.WriteHeader(tt.expectedStatus)
+					w.Write([]byte(tt.expectedResult))
+				}))
+			defer ts.Close()
+			// TODO: this modifies a global variable, which may have side-effects.
+			// This will be eliminated once Extensions are read from datastore.
+			storage.Extensions["foobar"] = tt.urlPrefix + ts.URL
+
+			// Run the extension handler.
+			env.HandleExtension(rec, req)
+
+			if tt.expectedStatus != rec.Code {
+				t.Errorf("HandleExtension() wrong HTTP status: got %v; want %v",
+					rec.Code, tt.expectedStatus)
+			}
+			if tt.expectedResult != "" && tt.expectedResult != rec.Body.String() {
+				t.Errorf("HandleExtension() wrong result forwarded: got %v\n; want %v\n",
+					rec.Body.String(), tt.expectedResult)
 			}
 		})
 	}

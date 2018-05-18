@@ -19,12 +19,17 @@ package handler
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/m-lab/epoxy/extension"
 	"github.com/m-lab/epoxy/storage"
 	"github.com/m-lab/epoxy/template"
 )
@@ -44,7 +49,6 @@ type Env struct {
 }
 
 // GenerateStage1IPXE creates the stage1 iPXE script for booting machines.
-// func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) (int, error) {
 func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 	hostname := mux.Vars(req)["hostname"]
 
@@ -154,4 +158,75 @@ func (env *Env) ReceiveReport(rw http.ResponseWriter, req *http.Request) {
 	// Report success with no content.
 	rw.WriteHeader(http.StatusNoContent)
 	return
+}
+
+// newReverseProxy creates an httputil.ReverseProxy instance with a custom Director
+// that will send the given content to the target.
+//
+// This implementation differs from the builtin httputil.NewSingleHostReverseProxy by
+// modifying how the target URL is treated and by completely overwriting the request
+// body. In this way we are restricting how the request is delivered to the
+// target and leveraging the response forwarding logic of the httputil.ReverseProxy.
+func newReverseProxy(target *url.URL, content string) *httputil.ReverseProxy {
+	director := func(req *http.Request) {
+		// Overwrite request URL with target, which discards any client query parameters.
+		// Overwrite the client request body with the given content.
+		// Overwrite the ContentLength to match the given content.
+		// Everything else (e.g. original Headers) is unchanged.
+		req.URL = target
+		req.Body = ioutil.NopCloser(strings.NewReader(content))
+		req.ContentLength = int64(len(content))
+	}
+	return &httputil.ReverseProxy{Director: director}
+}
+
+// HandleExtension handles client requests to ePoxy extension URLs. The handler creates
+// and sends a request to the extension service registered for the operation.
+func (env *Env) HandleExtension(rw http.ResponseWriter, req *http.Request) {
+	// Use hostname as key to load record from Datastore.
+	hostname := mux.Vars(req)["hostname"]
+	host, err := env.Config.Load(hostname)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	// Verify sessionID matches the host record (i.e. request is authorized).
+	sessionID := mux.Vars(req)["sessionID"]
+	// TODO: support multiple extensions.
+	if sessionID != host.CurrentSessionIDs.ExtensionID {
+		http.Error(rw, "Given session ID does not match host record", http.StatusForbidden)
+		return
+	}
+
+	operation := mux.Vars(req)["operation"]
+	if len(operation) == 0 {
+		http.Error(rw, "Zero length operation is invalid", http.StatusBadRequest)
+		return
+	}
+	// TODO: load extension URL from datastore.
+	if _, ok := storage.Extensions[operation]; !ok {
+		http.Error(rw, "Unknown Extension for operation: "+operation, http.StatusInternalServerError)
+		return
+	}
+
+	webreq := extension.Request{
+		V1: &extension.V1{
+			Hostname:    host.Name,
+			IPv4Address: host.IPv4Addr,
+			LastBoot:    host.LastSessionCreation,
+		},
+	}
+
+	extURL, err := url.Parse(storage.Extensions[operation])
+	if err != nil {
+		http.Error(rw, "Failed to parse extension URL for operation: "+operation, http.StatusInternalServerError)
+		return
+	}
+
+	// TODO: track metrics about extension requests:
+	//  * histogram of request latencies,
+	//  * counts status codes,
+	srv := newReverseProxy(extURL, webreq.Encode())
+	srv.ServeHTTP(rw, req)
 }

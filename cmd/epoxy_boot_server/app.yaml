@@ -1,3 +1,6 @@
 runtime: custom
 env: flex
 service: boot-api
+
+network:
+  name: epoxy-extension-private-network

@@ -33,6 +33,7 @@ var (
 )
 
 // CollectedInformation stores information received directly from iPXE clients.
+// Field names correspond to iPXE variable names.
 type CollectedInformation struct {
 	Platform         string
 	BuildArch        string
@@ -57,6 +58,8 @@ type SessionIDs struct {
 	Stage2ID string // Needed for requesting the stage2.json target.
 	Stage3ID string // Needed for requesting the stage3.json target.
 	ReportID string // Needed for requesting the report target.
+	// TODO: support multiple extensions.
+	ExtensionID string // Needed for requesting the extension target.
 }
 
 // TODO: Sequences could be a separate type stored in datastore. These could be
@@ -95,6 +98,8 @@ type Host struct {
 	// IPv4Addr is the IPv4 address the booting machine will use to connect to the API.
 	IPv4Addr string
 
+	// TODO: add IPv6Addr.
+
 	// Boot is the typical boot sequence for this Host.
 	Boot Sequence
 	// Update is an alternate boot sequence, typically used to update the system, e.g. reinstall, reflash.
@@ -103,6 +108,9 @@ type Host struct {
 	// UpdateEnabled controls whether ePoxy returns the Update Sequence (true)
 	// or Boot Sequence (false) Chain URLs.
 	UpdateEnabled bool
+
+	// Extensions is an array of extension operation names enabled for this host.
+	Extensions []string
 
 	// CurrentSessionIDs are the most recently generated session ids for a booting machine.
 	CurrentSessionIDs SessionIDs
@@ -129,6 +137,7 @@ func (h *Host) GenerateSessionIDs() {
 	h.CurrentSessionIDs.Stage2ID = generateSessionID()
 	h.CurrentSessionIDs.Stage3ID = generateSessionID()
 	h.CurrentSessionIDs.ReportID = generateSessionID()
+	h.CurrentSessionIDs.ExtensionID = generateSessionID()
 	h.LastSessionCreation = timeNow()
 }
 

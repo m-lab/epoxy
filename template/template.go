@@ -34,6 +34,9 @@ set stage1chain_url {{ .Stage1ChainURL }}
 set stage2_url {{ .Stage2URL }}
 set stage3_url {{ .Stage3URL }}
 set report_url {{ .ReportURL }}
+{{- range $key, $value := .Extensions }}
+set {{ $key }}_url {{ $value }}
+{{- end }}
 
 chain ${stage1chain_url}
 `
@@ -46,7 +49,7 @@ func FormatStage1IPXEScript(h *storage.Host, serverAddr string) string {
 	s := h.CurrentSequence()
 
 	// Prepare a map for evaluating template.
-	vals := make(map[string]string)
+	vals := make(map[string]interface{}, 5)
 	vals["Stage1ChainURL"] = s.NextURL("stage1")
 	vals["Stage2URL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/stage2",
 		serverAddr, h.Name, h.CurrentSessionIDs.Stage2ID)
@@ -54,6 +57,15 @@ func FormatStage1IPXEScript(h *storage.Host, serverAddr string) string {
 		serverAddr, h.Name, h.CurrentSessionIDs.Stage3ID)
 	vals["ReportURL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/report",
 		serverAddr, h.Name, h.CurrentSessionIDs.ReportID)
+
+	// Construct an extension URL for all extensions this host supports.
+	extensionURLs := make(map[string]string, len(h.Extensions))
+	// TODO: verify that extensions actually exist. e.g. do not generate invalid urls.
+	for _, operation := range h.Extensions {
+		extensionURLs[operation] = fmt.Sprintf("https://%s/v1/boot/%s/%s/extension/%s",
+			serverAddr, h.Name, h.CurrentSessionIDs.ExtensionID, operation)
+	}
+	vals["Extensions"] = extensionURLs
 
 	t := template.Must(template.New("stage1").Parse(stage1IpxeTemplate))
 	err := t.Execute(&b, vals)

@@ -23,15 +23,16 @@ type ExtentionOperation struct {
 	// URL references a service that implements the extension operation. During
 	// machine boot, when a machine requests the ePoxy extension URL, the ePoxy
 	// server will, in turn, issue a request to this URL, sending an
-	// extension.WebhookRequest message. The extension service response is
+	// extension.Request message. The extension service response is
 	// returned to the client verbatim.
 	URL string
 }
 
 var (
+	// Extensions is a static map of operation names to extension URLS for testing.
 	// TODO: save/retrieve extension configuration in/from datastore.
-	// This static map is for preliminary testing.
-	Extensions map[string]string = map[string]string{
-		"k8stoken": "http://k8s-platform-master.mlab-sandbox.measurementlab.net:8000",
+	Extensions = map[string]string{
+		"k8stoken": "http://k8s-platform-master.c.mlab-sandbox.internal:8000/v1/operation",
+		"test_op":  "http://soltesz-epoxy-testing-instance-1.c.mlab-sandbox.internal:8001/operation",
 	}
 )

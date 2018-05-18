@@ -43,7 +43,7 @@ func operationHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO: verify this is from a trusted source.
 	var result *returnMessage
 
-	// Decode the webhook request.
+	// Decode the request.
 	ext := &extension.Request{}
 	err := ext.Decode(r.Body)
 	// Prepare and respond to caller.

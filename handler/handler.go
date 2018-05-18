@@ -181,7 +181,7 @@ func newReverseProxy(target *url.URL, content string) *httputil.ReverseProxy {
 }
 
 // HandleExtension handles client requests to ePoxy extension URLs. The handler creates
-// and sends a webhook request to the extension service registered for the operation.
+// and sends a request to the extension service registered for the operation.
 func (env *Env) HandleExtension(rw http.ResponseWriter, req *http.Request) {
 	// Use hostname as key to load record from Datastore.
 	hostname := mux.Vars(req)["hostname"]

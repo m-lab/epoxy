@@ -96,9 +96,9 @@ func newRouter(env *handler.Env) *mux.Router {
 	///////////////////////////////////////////////////////////////////////////
 	// Boot stage targets.
 	//
-	// Immediately after boot, a maching unconditionally requests a stage1 target.
-	// After that, the machine should incrementally request the stage2, stage3, and
-	// report targets in sequence. As each is requested, the session ID for the
+	// Immediately after boot, a machine unconditionally requests a stage1 target.
+	// After that, the machine should sequentially request the stage2, stage3, and
+	// report targets in order. As each is requested, the session ID for the
 	// previous is invalidated.
 
 	// Stage1 scripts are always the first script fetched by a booting machine.

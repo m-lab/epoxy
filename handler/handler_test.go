@@ -320,7 +320,7 @@ func TestEnv_HandleExtension(t *testing.T) {
 		},
 		LastSessionCreation: time.Date(2018, 5, 1, 0, 0, 0, 0, time.UTC),
 	}
-	// The webhook request that should be received by the extension server.
+	// The request that should be received by the extension server.
 	expectedRequest := &extension.Request{
 		V1: &extension.V1{
 			Hostname:    h.Name,
@@ -413,7 +413,7 @@ func TestEnv_HandleExtension(t *testing.T) {
 						tt.expectedRequest.V1.Hostname != ext.V1.Hostname ||
 						tt.expectedRequest.V1.IPv4Address != ext.V1.IPv4Address ||
 						tt.expectedRequest.V1.IPv6Address != ext.V1.IPv6Address {
-						t.Errorf("HandleExtension() malformed webhook request: got %#v, want %#v",
+						t.Errorf("HandleExtension() malformed request: got %#v, want %#v",
 							ext.V1, tt.expectedRequest.V1)
 					}
 					// Unconditionally report the test-defined status.

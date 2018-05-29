@@ -58,6 +58,14 @@ func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusNotFound)
 		return
 	}
+	log.Println(
+		"Host:", host.IPv4Addr,
+		"remote:", req.RemoteAddr,
+		"fowarded-for:", req.Header.Get("X-Forwarded-For"))
+	for k, vals := range req.Header {
+		log.Println("headers:", k, vals)
+	}
+
 	// TODO(soltesz):
 	// * Verify that the source IP maches the host IP.
 	// * Save information sent in PostForm.

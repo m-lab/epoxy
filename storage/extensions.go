@@ -32,7 +32,7 @@ var (
 	// Extensions is a static map of operation names to extension URLS for testing.
 	// TODO: save/retrieve extension configuration in/from datastore.
 	Extensions = map[string]string{
-		"allocate_k8s_token": "http://k8s-platform-master.c.mlab-sandbox.internal:8800/allocate_k8s_token",
+		"allocate_k8s_token": "http://k8s-platform-master.c.mlab-sandbox.internal:8800/v1/allocate_k8s_token",
 		"test_op":            "http://soltesz-epoxy-testing-instance-1.c.mlab-sandbox.internal:8001/operation",
 	}
 )

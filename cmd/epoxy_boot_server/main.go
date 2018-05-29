@@ -68,6 +68,10 @@ var (
 
 	// bindPort may be set using the PORT environment variable.
 	bindPort = "8080"
+
+	// allowForwardedRequests controls how the ePoxy server evaluates and applies
+	// the Host IP whitelist to incoming requests.
+	allowForwardedRequests = false
 )
 
 // init checks the environment for configuration values.
@@ -78,6 +82,9 @@ func init() {
 	}
 	if port := os.Getenv("PORT"); port != "" {
 		bindPort = port
+	}
+	if allow := os.Getenv("ALLOW_FORWARDED_REQUESTS"); allow == "true" {
+		allowForwardedRequests = true
 	}
 }
 
@@ -159,8 +166,9 @@ func main() {
 		log.Fatalf("Failed to create new datastore client: %s", err)
 	}
 	env := &handler.Env{
-		Config:     storage.NewDatastoreConfig(client),
-		ServerAddr: publicAddr,
+		Config:                 storage.NewDatastoreConfig(client),
+		ServerAddr:             publicAddr,
+		AllowForwardedRequests: allowForwardedRequests,
 	}
 	http.ListenAndServe(addr, newRouter(env))
 }

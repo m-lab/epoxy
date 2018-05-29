@@ -69,7 +69,7 @@ func TestGenerateStage1IPXE(t *testing.T) {
 			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
 		},
 	}
-	env := &Env{fakeConfig{host: h}, "example.com:4321"}
+	env := &Env{fakeConfig{host: h}, "example.com:4321", true}
 	router := mux.NewRouter()
 	router.Methods("POST").
 		Path("/v1/boot/{hostname}/stage1.ipxe").
@@ -79,9 +79,15 @@ func TestGenerateStage1IPXE(t *testing.T) {
 
 	// Run client request.
 	vals := url.Values{}
-	u := ts.URL + "/v1/boot/mlab1.iad1t.measurement-lab.org/stage1.ipxe"
+	path := ts.URL + "/v1/boot/mlab1.iad1t.measurement-lab.org/stage1.ipxe"
 
-	resp, err := http.PostForm(u, vals)
+	req, err := http.NewRequest("POST", path, strings.NewReader(vals.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("X-Forwarded-For", h.IPv4Addr)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,33 +160,44 @@ func TestEnv_GenerateStage1IPXE(t *testing.T) {
 		vars   map[string]string
 		req    *http.Request
 		config fakeConfig
+		from   string
 		status int
 	}{
 		{
 			name:   "okay",
 			vars:   map[string]string{"hostname": h.Name},
 			config: fakeConfig{host: h, failOnLoad: false, failOnSave: false},
+			from:   h.IPv4Addr,
 			status: http.StatusOK,
 		},
 		{
 			name:   "fail-on-load",
 			vars:   map[string]string{"hostname": h.Name},
 			config: fakeConfig{host: h, failOnLoad: true, failOnSave: false},
+			from:   h.IPv4Addr,
 			status: http.StatusNotFound,
 		},
 		{
 			name:   "fail-on-save",
 			config: fakeConfig{host: h, failOnLoad: false, failOnSave: true},
+			from:   h.IPv4Addr,
 			status: http.StatusInternalServerError,
+		},
+		{
+			name:   "fail-from-wrong-ip",
+			config: fakeConfig{host: h},
+			from:   "192.168.0.1",
+			status: http.StatusForbidden,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			vars := map[string]string{"hostname": h.Name}
 			req := httptest.NewRequest("POST", "/v1/boot/"+h.Name+"/stage1.ipxe", nil)
+			req.Header.Set("X-Forwarded-For", tt.from)
 			rec := httptest.NewRecorder()
 
-			env := &Env{tt.config, "example.com:4321"}
+			env := &Env{tt.config, "example.com:4321", true}
 			req = mux.SetURLVars(req, vars)
 			env.GenerateStage1IPXE(rec, req)
 
@@ -206,19 +223,29 @@ func TestEnv_GenerateJSONConfig(t *testing.T) {
 		name     string
 		config   fakeConfig
 		status   int
+		from     string
 		expected string
 	}{
 		{
 			name:     "okay",
 			config:   fakeConfig{host: h, failOnLoad: false, failOnSave: false},
 			status:   http.StatusOK,
+			from:     h.IPv4Addr,
 			expected: (&nextboot.Config{V1: &nextboot.V1{Chain: h.Boot.Stage2ChainURL}}).String(),
 		},
 		{
 			name:     "fail-on-load",
 			config:   fakeConfig{host: h, failOnLoad: true, failOnSave: false},
 			status:   http.StatusNotFound,
+			from:     h.IPv4Addr,
 			expected: "Failed to load: mlab1.iad1t.measurement-lab.org\n",
+		},
+		{
+			name:     "fail-from-wrong-ip",
+			config:   fakeConfig{host: h},
+			status:   http.StatusForbidden,
+			from:     "192.168.0.1",
+			expected: "Caller cannot access host\n",
 		},
 	}
 	for _, tt := range tests {
@@ -226,9 +253,10 @@ func TestEnv_GenerateJSONConfig(t *testing.T) {
 			vars := map[string]string{"hostname": h.Name, "sessionID": h.CurrentSessionIDs.Stage2ID}
 			path := "/v1/boot/mlab1.iad1t.measurement-lab.org/12345/stage2"
 			req := httptest.NewRequest("POST", path, nil)
+			req.Header.Set("X-Forwarded-For", tt.from)
 			rec := httptest.NewRecorder()
 
-			env := &Env{tt.config, "server.com:4321"}
+			env := &Env{tt.config, "server.com:4321", true}
 			req = mux.SetURLVars(req, vars)
 			env.GenerateJSONConfig(rec, req)
 
@@ -253,6 +281,7 @@ func TestEnv_ReceiveReport(t *testing.T) {
 	tests := []struct {
 		name            string
 		sessionID       string
+		from            string
 		expectedStatus  int
 		expectedEnabled bool
 		form            url.Values
@@ -260,6 +289,7 @@ func TestEnv_ReceiveReport(t *testing.T) {
 		{
 			name:            "disable-update-enabled-on-success",
 			sessionID:       "12345",
+			from:            h.IPv4Addr,
 			expectedStatus:  http.StatusNoContent,
 			expectedEnabled: false,
 			form: url.Values{
@@ -269,6 +299,7 @@ func TestEnv_ReceiveReport(t *testing.T) {
 		{
 			name:            "preserve-update-enabled-on-failure",
 			sessionID:       "12345",
+			from:            h.IPv4Addr,
 			expectedStatus:  http.StatusNoContent,
 			expectedEnabled: true,
 			form: url.Values{
@@ -278,6 +309,15 @@ func TestEnv_ReceiveReport(t *testing.T) {
 		{
 			name:            "bad-session-returns-forbidden",
 			sessionID:       "mismatched-session-id",
+			from:            h.IPv4Addr,
+			expectedStatus:  http.StatusForbidden,
+			expectedEnabled: true,
+			form:            url.Values{},
+		},
+		{
+			name:            "fail-from-wrong-ip",
+			sessionID:       "12345",
+			from:            "192.168.0.1",
 			expectedStatus:  http.StatusForbidden,
 			expectedEnabled: true,
 			form:            url.Values{},
@@ -292,9 +332,10 @@ func TestEnv_ReceiveReport(t *testing.T) {
 			req := httptest.NewRequest("POST", path, strings.NewReader(tt.form.Encode()))
 			// Mark the body as form content to be read by ParseForm.
 			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Set("X-Forwarded-For", tt.from)
 			rec := httptest.NewRecorder()
 
-			env := &Env{fakeConfig{host: h, failOnLoad: false, failOnSave: false}, "server.com:4321"}
+			env := &Env{fakeConfig{host: h, failOnLoad: false, failOnSave: false}, "server.com:4321", true}
 			req = mux.SetURLVars(req, vars)
 			env.ReceiveReport(rec, req)
 
@@ -334,6 +375,7 @@ func TestEnv_HandleExtension(t *testing.T) {
 		operation       string
 		failOnLoad      bool
 		urlPrefix       string
+		from            string
 		expectedStatus  int
 		expectedResult  string
 		expectedRequest *extension.Request
@@ -342,6 +384,7 @@ func TestEnv_HandleExtension(t *testing.T) {
 			name:            "successful-request",
 			sessionID:       "12345",
 			operation:       "foobar",
+			from:            h.IPv4Addr,
 			expectedStatus:  http.StatusOK,
 			expectedResult:  "okay",
 			expectedRequest: expectedRequest,
@@ -350,6 +393,7 @@ func TestEnv_HandleExtension(t *testing.T) {
 			name:            "failure-backend-returns-notfound",
 			sessionID:       "12345",
 			operation:       "foobar",
+			from:            h.IPv4Addr,
 			expectedStatus:  http.StatusNotFound,
 			expectedResult:  "not found",
 			expectedRequest: expectedRequest,
@@ -362,24 +406,34 @@ func TestEnv_HandleExtension(t *testing.T) {
 		{
 			name:           "failure-bad-sessionid",
 			sessionID:      "54321",
+			from:           h.IPv4Addr,
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			name:           "failure-from-wrong-ip",
+			sessionID:      "54321",
+			from:           "192.168.0.1",
 			expectedStatus: http.StatusForbidden,
 		},
 		{
 			name:           "failure-zerolength-operation",
 			sessionID:      "12345",
 			operation:      "",
+			from:           h.IPv4Addr,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "failure-unknown-operation",
 			sessionID:      "12345",
 			operation:      "unknown",
+			from:           h.IPv4Addr,
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
 			name:           "failure-parsing-extension-url",
 			sessionID:      "12345",
 			operation:      "foobar",
+			from:           h.IPv4Addr,
 			urlPrefix:      ":", // with this character, the backend URL will fail to parse.
 			expectedStatus: http.StatusInternalServerError,
 		},
@@ -395,8 +449,9 @@ func TestEnv_HandleExtension(t *testing.T) {
 			extURL := "/v1/boot/mlab1.iad1t.measurement-lab.org/12345/extension/foobar"
 
 			req := httptest.NewRequest("POST", extURL, nil)
+			req.Header.Set("X-Forwarded-For", tt.from)
 			rec := httptest.NewRecorder()
-			env := &Env{fakeConfig{host: h, failOnLoad: tt.failOnLoad}, "server.com:4321"}
+			env := &Env{fakeConfig{host: h, failOnLoad: tt.failOnLoad}, "server.com:4321", true}
 			req = mux.SetURLVars(req, vars)
 			// Setup a fake extension server to handle the Request.
 			ts := httptest.NewServer(

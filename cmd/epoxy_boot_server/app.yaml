@@ -4,3 +4,6 @@ service: boot-api
 
 network:
   name: epoxy-extension-private-network
+
+env_variables:
+  ALLOW_FORWARDED_REQUESTS: 'true'

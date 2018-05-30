@@ -70,7 +70,7 @@ func (env *Env) requestIsFromHost(req *http.Request, host *storage.Host) error {
 	// forwareded by a load balancer, which adds the `X-Forwarded-For` header.
 	//
 	// Depending on the value of AllowForwardedRequests, we check the X-Forwarded-For
-	// header or the value in RemoteAddr.
+	// header (when true) or the value in RemoteAddr (when false).
 
 	// TODO: allow requests from an administrative network.
 
@@ -84,7 +84,7 @@ func (env *Env) requestIsFromHost(req *http.Request, host *storage.Host) error {
 		return ErrCannotAccessHost
 	}
 	// Check the RemoteAddr host.
-	if !env.AllowForwardedRequests && strings.HasPrefix(remote.Hostname(), host.IPv4Addr) {
+	if !env.AllowForwardedRequests && (remote.Hostname() == host.IPv4Addr) {
 		return nil
 	}
 	return ErrCannotAccessHost

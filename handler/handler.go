@@ -73,6 +73,9 @@ func (env *Env) requestIsFromHost(req *http.Request, host *storage.Host) error {
 	// header (when true) or the value in RemoteAddr (when false).
 
 	// TODO: allow requests from an administrative network.
+	for k, v := range req.Header {
+		log.Println("Header:", k, v)
+	}
 
 	// Check the X-Forwarded-For header.
 	if env.AllowForwardedRequests && (req.Header.Get("X-Forwarded-For") == host.IPv4Addr) {

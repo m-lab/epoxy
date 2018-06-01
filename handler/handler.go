@@ -78,8 +78,9 @@ func (env *Env) requestIsFromHost(req *http.Request, host *storage.Host) error {
 	}
 	log.Println("Header:", req.Header.Get("X-Forwarded-For"), host.IPv4Addr)
 
-	// Check the X-Forwarded-For header.
-	if env.AllowForwardedRequests && (req.Header.Get("X-Forwarded-For") == host.IPv4Addr) {
+	// Split the header into individual IPs. The first IP is the original client.
+	fwdIPs := strings.Split(req.Header.Get("X-Forwarded-For"), ", ")
+	if env.AllowForwardedRequests && len(fwdIPs) > 0 && fwdIPs[0] == host.IPv4Addr {
 		return nil
 	}
 	// RemoteAddr may encode IPv6 addresses, so parse the "host:port" value carefully.

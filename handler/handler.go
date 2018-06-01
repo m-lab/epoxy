@@ -76,6 +76,7 @@ func (env *Env) requestIsFromHost(req *http.Request, host *storage.Host) error {
 	for k, v := range req.Header {
 		log.Println("Header:", k, v)
 	}
+	log.Println("Header:", req.Header.Get("X-Forwarded-For"), host.IPv4Addr)
 
 	// Check the X-Forwarded-For header.
 	if env.AllowForwardedRequests && (req.Header.Get("X-Forwarded-For") == host.IPv4Addr) {

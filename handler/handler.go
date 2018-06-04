@@ -73,14 +73,15 @@ func (env *Env) requestIsFromHost(req *http.Request, host *storage.Host) error {
 	// header (when true) or the value in RemoteAddr (when false).
 
 	// TODO: allow requests from an administrative network.
-	for k, v := range req.Header {
-		log.Println("Header:", k, v)
-	}
-	log.Println("Header:", req.Header.Get("X-Forwarded-For"), host.IPv4Addr)
+	log.Println("Header:", req.Header.Get("X-Forwarded-For"), "vs", host.IPv4Addr)
+	log.Println("Header:", req.Header.Get("X-Forwarded-For"), "vs", req.RemoteAddr)
 
 	// Split the header into individual IPs. The first IP is the original client.
 	fwdIPs := strings.Split(req.Header.Get("X-Forwarded-For"), ", ")
-	if env.AllowForwardedRequests && len(fwdIPs) > 0 && fwdIPs[0] == host.IPv4Addr {
+	// Note: Since this value can be set by the original client, we must check the other IPs.
+	// There should be two IPs: one for the original client, and one for the AE load balancer.
+	if env.AllowForwardedRequests && len(fwdIPs) == 2 && fwdIPs[0] == host.IPv4Addr {
+		// TODO: verify that fwdIPs[1] is an AppEngine load balancer.
 		return nil
 	}
 	// RemoteAddr may encode IPv6 addresses, so parse the "host:port" value carefully.

@@ -61,10 +61,21 @@ var (
 	ErrCannotAccessHost = fmt.Errorf("Caller cannot access host")
 )
 
+// extractIP parses an "IP:port" string created by the Go http package and
+// returns the IP address portion.
+func extractIP(remoteAddr string) (string, error) {
+	// url.Parse works correctly whether IP is IPv4 or IPv6 formatted.
+	u, err := url.Parse("//" + remoteAddr)
+	if err != nil {
+		return "", err
+	}
+	return u.Hostname(), nil
+}
+
 // requestIsFromHost checks whether the request appears to have originated from the given host.
 func (env *Env) requestIsFromHost(req *http.Request, host *storage.Host) error {
 	// Typically, booting machines contact the ePoxy server directly. In this
-	// case, the req.RemoteAddr contains the host IP of the booting machine.
+	// case, the req.RemoteAddr contains the IP of the booting machine.
 	//
 	// However, when the ePoxy server runs in AppEngine, client requests are
 	// forwareded by a load balancer, which adds the `X-Forwarded-For` header.
@@ -80,17 +91,18 @@ func (env *Env) requestIsFromHost(req *http.Request, host *storage.Host) error {
 	fwdIPs := strings.Split(req.Header.Get("X-Forwarded-For"), ", ")
 	// Note: Since this value can be set by the original client, we must check the other IPs.
 	// There should be two IPs: one for the original client, and one for the AE load balancer.
-	if env.AllowForwardedRequests && len(fwdIPs) == 2 && fwdIPs[0] == host.IPv4Addr {
+	if env.AllowForwardedRequests && len(fwdIPs) <= 2 && fwdIPs[0] == host.IPv4Addr {
 		// TODO: verify that fwdIPs[1] is an AppEngine load balancer.
 		return nil
 	}
-	// RemoteAddr may encode IPv6 addresses, so parse the "host:port" value carefully.
-	remote, err := url.Parse("//" + req.RemoteAddr)
+
+	// Check RemoteAddr.
+	remoteIP, err := extractIP(req.RemoteAddr)
 	if err != nil {
 		return ErrCannotAccessHost
 	}
-	// Check the RemoteAddr host.
-	if !env.AllowForwardedRequests && (remote.Hostname() == host.IPv4Addr) {
+	// Check whether remoteIP matches the registered host IPv4Addr.
+	if !env.AllowForwardedRequests && (remoteIP == host.IPv4Addr) {
 		return nil
 	}
 	return ErrCannotAccessHost

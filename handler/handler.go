@@ -46,6 +46,66 @@ type Env struct {
 	Config Config
 	// ServerAddr is the host:port of the public service. Used to generate absolute URLs.
 	ServerAddr string
+	// AllowForwardedRequests changes how the ePoxy server evaluates and applies
+	// the Host IP whitelist to incoming requests. Typically, the ePoxy server
+	// allows an operation when the request "remote address" matches the target Host
+	// IP. AllowForwardedRequests should be false unless the ePoxy server runs
+	// in a trusted environment like AppEngine. When AllowForwardedRequests is true,
+	// then the ePoxy server substitutes the value in the "X-Forwarded-For" request
+	// header for the request "remote address".
+	AllowForwardedRequests bool
+}
+
+var (
+	// ErrCannotAccessHost indicates that the request should not be allowed.
+	ErrCannotAccessHost = fmt.Errorf("Caller cannot access host")
+)
+
+// extractIP parses an "IP:port" string created by the Go http package and
+// returns the IP address portion.
+func extractIP(remoteAddr string) (string, error) {
+	// url.Parse works correctly whether IP is IPv4 or IPv6 formatted.
+	u, err := url.Parse("//" + remoteAddr)
+	if err != nil {
+		return "", err
+	}
+	return u.Hostname(), nil
+}
+
+// requestIsFromHost checks whether the request appears to have originated from the given host.
+func (env *Env) requestIsFromHost(req *http.Request, host *storage.Host) error {
+	// Typically, booting machines contact the ePoxy server directly. In this
+	// case, the req.RemoteAddr contains the IP of the booting machine.
+	//
+	// However, when the ePoxy server runs in AppEngine, client requests are
+	// forwareded by a load balancer, which adds the `X-Forwarded-For` header.
+	//
+	// Depending on the value of AllowForwardedRequests, we check the X-Forwarded-For
+	// header (when true) or the value in RemoteAddr (when false).
+
+	// TODO: allow requests from an administrative network.
+	log.Println("Header:", req.Header.Get("X-Forwarded-For"), "vs", host.IPv4Addr)
+	log.Println("Header:", req.Header.Get("X-Forwarded-For"), "vs", req.RemoteAddr)
+
+	// Split the header into individual IPs. The first IP is the original client.
+	fwdIPs := strings.Split(req.Header.Get("X-Forwarded-For"), ", ")
+	// Note: Since this value can be set by the original client, we must check the other IPs.
+	// There should be two IPs: one for the original client, and one for the AE load balancer.
+	if env.AllowForwardedRequests && len(fwdIPs) <= 2 && fwdIPs[0] == host.IPv4Addr {
+		// TODO: verify that fwdIPs[1] is an AppEngine load balancer.
+		return nil
+	}
+
+	// Check RemoteAddr.
+	remoteIP, err := extractIP(req.RemoteAddr)
+	if err != nil {
+		return ErrCannotAccessHost
+	}
+	// Check whether remoteIP matches the registered host IPv4Addr.
+	if !env.AllowForwardedRequests && (remoteIP == host.IPv4Addr) {
+		return nil
+	}
+	return ErrCannotAccessHost
 }
 
 // GenerateStage1IPXE creates the stage1 iPXE script for booting machines.
@@ -58,8 +118,14 @@ func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusNotFound)
 		return
 	}
+
+	err = env.requestIsFromHost(req, host)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusForbidden)
+		return
+	}
+
 	// TODO(soltesz):
-	// * Verify that the source IP maches the host IP.
 	// * Save information sent in PostForm.
 
 	// Generate new session IDs.
@@ -97,8 +163,13 @@ func (env *Env) GenerateJSONConfig(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusNotFound)
 		return
 	}
+	err = env.requestIsFromHost(req, host)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusForbidden)
+		return
+	}
+
 	// TODO(soltesz):
-	// * Verify that the source IP maches the host IP.
 	// * Save information sent in PostForm, e.g. ssh host key.
 	stage := path.Base(req.URL.Path)
 
@@ -129,6 +200,13 @@ func (env *Env) ReceiveReport(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusNotFound)
 		return
 	}
+	err = env.requestIsFromHost(req, host)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	// TODO(soltesz):
 
 	// Verify sessionID matches the host record (i.e. request is authorized).
 	sessionID := mux.Vars(req)["sessionID"]
@@ -188,6 +266,11 @@ func (env *Env) HandleExtension(rw http.ResponseWriter, req *http.Request) {
 	host, err := env.Config.Load(hostname)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = env.requestIsFromHost(req, host)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusForbidden)
 		return
 	}
 

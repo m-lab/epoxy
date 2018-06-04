@@ -83,7 +83,7 @@ func init() {
 	if port := os.Getenv("PORT"); port != "" {
 		bindPort = port
 	}
-	if allow := os.Getenv("ALLOW_FORWARDED_REQUESTS"); allow == "true" {
+	if os.Getenv("ALLOW_FORWARDED_REQUESTS") == "true" {
 		allowForwardedRequests = true
 	}
 }

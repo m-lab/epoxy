@@ -3,7 +3,13 @@ env: flex
 service: boot-api
 
 network:
+  instance_tag: epoxy-boot-api
   name: epoxy-extension-private-network
+  # Forward port 9090 on the GCE instance address to the same port in the
+  # container address. Only forward TCP traffic.
+  # Note: the default AppEngine container port 8080 cannot be forwarded.
+  forwarded_ports:
+    - 9090/tcp
 
 env_variables:
   ALLOW_FORWARDED_REQUESTS: 'true'

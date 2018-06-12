@@ -44,7 +44,10 @@ import (
 	"cloud.google.com/go/datastore"
 	"github.com/gorilla/mux"
 	"github.com/m-lab/epoxy/handler"
+	"github.com/m-lab/epoxy/metrics"
 	"github.com/m-lab/epoxy/storage"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -111,7 +114,8 @@ func newRouter(env *handler.Env) *mux.Router {
 	// Stage1 scripts are always the first script fetched by a booting machine.
 	// "stage1.ipxe" is the target for ROM-based iPXE clients.
 	addRoute(router, "POST", "/v1/boot/{hostname}/stage1.ipxe",
-		http.HandlerFunc(env.GenerateStage1IPXE))
+		promhttp.InstrumentHandlerDuration(metrics.RequestDuration,
+			http.HandlerFunc(env.GenerateStage1IPXE)))
 
 	// TODO(soltesz): add a target for CD-based ePoxy clients.
 	// addRoute(router, "POST", "/v1/boot/{hostname}/stage1.json", generateStage1Json)
@@ -150,6 +154,22 @@ func checkHealth(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(rw, "ok")
 }
 
+func setupMetricsHandler(dsCfg *storage.DatastoreConfig) {
+	// Note: we use custom collectors to read directly from datastore rather than
+	// instrumenting http handlers because we want to guarantee that metrics are
+	// always available, even after an appengine server restart. These metrics will
+	// be critical for defining alerts on boot failures.
+	prometheus.Register(metrics.NewCollector("epoxy_last_boot", dsCfg))
+	prometheus.Register(metrics.NewCollector("epoxy_last_success", dsCfg))
+	// Define a custom serve mux for prometheus to listen on a separate port.
+	// We listen on a separate port so we can forward this port on the host VM.
+	// We cannot forward port 8080 because it is used by AppEngine.
+	mux := http.NewServeMux()
+	// Assign the default prometheus handler to the standard exporter path.
+	mux.Handle("/metrics", promhttp.Handler())
+	log.Fatal(http.ListenAndServe(":9090", mux))
+}
+
 func main() {
 	if projectID == "" {
 		log.Fatalf("Environment variable GCLOUD_PROJECT must specify a project ID for Datastore.")
@@ -165,10 +185,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create new datastore client: %s", err)
 	}
+	dsCfg := storage.NewDatastoreConfig(client)
 	env := &handler.Env{
-		Config:                 storage.NewDatastoreConfig(client),
+		Config:                 dsCfg,
 		ServerAddr:             publicAddr,
 		AllowForwardedRequests: allowForwardedRequests,
 	}
+	go setupMetricsHandler(dsCfg)
 	http.ListenAndServe(addr, newRouter(env))
 }

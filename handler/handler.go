@@ -30,6 +30,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/m-lab/epoxy/extension"
+	"github.com/m-lab/epoxy/metrics"
 	"github.com/m-lab/epoxy/storage"
 	"github.com/m-lab/epoxy/template"
 )
@@ -130,6 +131,9 @@ func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 
 	// Generate new session IDs.
 	host.GenerateSessionIDs()
+
+	// Count all requests for the stage1 target.
+	metrics.Stage1Total.WithLabelValues(host.Name).Inc()
 
 	// Save host record to Datastore to commit session IDs.
 	if err := env.Config.Save(host); err != nil {

@@ -155,6 +155,10 @@ func checkHealth(rw http.ResponseWriter, req *http.Request) {
 }
 
 func setupMetricsHandler(dsCfg *storage.DatastoreConfig) {
+	// Note: we use custom collectors to read directly from datastore rather than
+	// instrumenting http handlers because we want to guarantee that metrics are
+	// always available, even after an appengine server restart. These metrics will
+	// be critical for defining alerts on boot failures.
 	prometheus.Register(metrics.NewCollector("epoxy_last_boot", dsCfg))
 	prometheus.Register(metrics.NewCollector("epoxy_last_success", dsCfg))
 	// Define a custom serve mux for prometheus to listen on a separate port.

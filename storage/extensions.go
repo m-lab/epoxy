@@ -14,6 +14,11 @@
 //////////////////////////////////////////////////////////////////////////////
 package storage
 
+import (
+	"fmt"
+	"os"
+)
+
 // ExtentionOperation maps an operation name (used in URLs) to an extension service URL.
 type ExtentionOperation struct {
 	// Name is the operation name. This will appear in URLs to the ePoxy server.
@@ -32,7 +37,17 @@ var (
 	// Extensions is a static map of operation names to extension URLS for testing.
 	// TODO: save/retrieve extension configuration in/from datastore.
 	Extensions = map[string]string{
-		"allocate_k8s_token": "http://k8s-platform-master.c.mlab-sandbox.internal:8800/v1/allocate_k8s_token",
-		"test_op":            "http://soltesz-epoxy-testing-instance-1.c.mlab-sandbox.internal:8001/operation",
+		"allocate_k8s_token": "http://k8s-platform-master.c.%s.internal:8800/v1/allocate_k8s_token",
+		"test_op":            "http://soltesz-epoxy-testing-instance-1.c.%s.internal:8001/operation",
 	}
 )
+
+func init() {
+	// TODO: Remove this logic once the allocate_k8s_token URL is stored/read from datastore.
+	projectID := os.Getenv("GCLOUD_PROJECT")
+	if projectID != "" {
+		for key, value := range Extensions {
+			Extensions[key] = fmt.Sprintf(value, projectID)
+		}
+	}
+}

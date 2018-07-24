@@ -92,6 +92,7 @@ func init() {
 func main() {
 	flag.Parse()
 
+	var err error
 	// Setup Datastore client.
 	ctx := context.Background()
 	client, err := datastore.NewClient(ctx, fProject)
@@ -102,7 +103,6 @@ func main() {
 	// Save the host record to Datstore.
 	ds := storage.NewDatastoreConfig(client)
 	var h *storage.Host
-	var err error
 
 	if fUpdate {
 		// Retrieve the host record from Datastore before updating it.

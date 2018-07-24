@@ -118,7 +118,7 @@ func main() {
 		h = &storage.Host{
 			Name:          fHostname,
 			IPv4Addr:      fAddress,
-			UpdateEnabled: fUpdate,
+			UpdateEnabled: false,
 			Extensions:    []string{fExtension},
 			Boot: storage.Sequence{
 				Stage1ChainURL: fBootStage1,

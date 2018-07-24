@@ -37,18 +37,17 @@ const usage = `USAGE:
 **ONLY USE FOR TESTING**
 
 EXAMPLE:
+    # Use the default boot and update stage URLs:
     epoxy_admin --project mlab-sandbox \
         --hostname mlab3.iad1t.measurement-lab.org \
-        --address 165.117.240.35 \
-        --boot-stage1 https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage1to2.ipxe
-        --boot-stage2 https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage2to3.json
-        --boot-stage3 https://storage.googleapis.com/epoxy-mlab-sandbox/os/stage3post.json
+        --address 165.117.240.35
 `
 
 var (
 	fProject      string
 	fHostname     string
 	fAddress      string
+	fExtension    string
 	fUpdate       bool
 	fBootStage1   string
 	fBootStage2   string
@@ -65,8 +64,9 @@ func init() {
 		flag.PrintDefaults()
 	}
 	flag.StringVar(&fProject, "project", "mlab-sandbox", "GCP project ID.")
-	flag.StringVar(&fHostname, "hostname", "mlab3.iad1t.measurement-lab.org", "Hostname of new record.")
-	flag.StringVar(&fAddress, "address", "165.117.240.35", "IP address of hostname.")
+	flag.StringVar(&fHostname, "hostname", "", "Hostname of new record.")
+	flag.StringVar(&fAddress, "address", "", "IP address of hostname.")
+	flag.StringVar(&fExtension, "extension", "allocate_k8s_token", "Name of an extension to enable for host.")
 	flag.BoolVar(&fUpdate, "update", false,
 		"Set Host.UpdateEnabled to true for an existing Host. Do not specify when creating a new Host.")
 	flag.StringVar(&fBootStage1, "boot-stage1",
@@ -119,6 +119,7 @@ func main() {
 			Name:          fHostname,
 			IPv4Addr:      fAddress,
 			UpdateEnabled: fUpdate,
+			Extensions:    []string{fExtension},
 			Boot: storage.Sequence{
 				Stage1ChainURL: fBootStage1,
 				Stage2ChainURL: fBootStage2,

@@ -70,22 +70,22 @@ func init() {
 	flag.BoolVar(&fUpdate, "update", false,
 		"Set Host.UpdateEnabled to true for an existing Host. Do not specify when creating a new Host.")
 	flag.StringVar(&fBootStage1, "boot-stage1",
-		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_coreos/stage1to2.ipxe",
+		"https://storage.googleapis.com/epoxy-%s/stage3_coreos/stage1to2.ipxe",
 		"Absolute URL to an action definition to run during stage1 to boot stage2.")
 	flag.StringVar(&fBootStage2, "boot-stage2",
-		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_coreos/stage2to3.json",
+		"https://storage.googleapis.com/epoxy-%s/stage3_coreos/stage2to3.json",
 		"Absolute URL to an action definition to run during stage2 to boot stage3.")
 	flag.StringVar(&fBootStage3, "boot-stage3",
-		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_coreos/stage3post.json",
+		"https://storage.googleapis.com/epoxy-%s/stage3_coreos/stage3post.json",
 		"Absolute URL to an action definition to run after booting stage3.")
 	flag.StringVar(&fUpdateStage1, "update-stage1",
-		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_mlxupdate/stage1to2.ipxe",
+		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage1to2.ipxe",
 		"Absolute URL to an action definition to run during stage1 to boot stage2.")
 	flag.StringVar(&fUpdateStage2, "update-stage2",
-		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_mlxupdate/stage2to3.json",
+		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage2to3.json",
 		"Absolute URL to an action definition to run during stage2 to boot stage3.")
 	flag.StringVar(&fUpdateStage3, "update-stage3",
-		"https://storage.googleapis.com/epoxy-mlab-sandbox/stage3_mlxupdate/stage3post.json",
+		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage3post.json",
 		"Absolute URL to an action definition to run after booting stage3.")
 }
 
@@ -121,14 +121,14 @@ func main() {
 			UpdateEnabled: false,
 			Extensions:    []string{fExtension},
 			Boot: storage.Sequence{
-				Stage1ChainURL: fBootStage1,
-				Stage2ChainURL: fBootStage2,
-				Stage3ChainURL: fBootStage3,
+				Stage1ChainURL: fmt.Sprintf(fBootStage1, fProject),
+				Stage2ChainURL: fmt.Sprintf(fBootStage2, fProject),
+				Stage3ChainURL: fmt.Sprintf(fBootStage3, fProject),
 			},
 			Update: storage.Sequence{
-				Stage1ChainURL: fUpdateStage1,
-				Stage2ChainURL: fUpdateStage2,
-				Stage3ChainURL: fUpdateStage3,
+				Stage1ChainURL: fmt.Sprintf(fUpdateStage1, fProject),
+				Stage2ChainURL: fmt.Sprintf(fUpdateStage2, fProject),
+				Stage3ChainURL: fmt.Sprintf(fUpdateStage3, fProject),
 			},
 		}
 	}

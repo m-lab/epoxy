@@ -154,6 +154,52 @@ func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 	return
 }
 
+// GenerateStage1JSON creates the stage1 JSON epoxy_client script for booting
+// machines.
+func (env *Env) GenerateStage1JSON(rw http.ResponseWriter, req *http.Request) {
+	hostname := mux.Vars(req)["hostname"]
+
+	// Use hostname as key to load record from Datastore.
+	host, err := env.Config.Load(hostname)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	err = env.requestIsFromHost(req, host)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	// TODO(soltesz):
+	// * Save information sent in PostForm.
+
+	// Generate new session IDs.
+	host.GenerateSessionIDs()
+
+	// Count all requests for the stage1 target.
+	metrics.Stage1Total.WithLabelValues(host.Name).Inc()
+
+	// Save host record to Datastore to commit session IDs.
+	if err := env.Config.Save(host); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Generate epoxy client JSON action.
+	script := template.CreateStage1Action(host, env.ServerAddr)
+
+	// Complete request as successful.
+	rw.Header().Set("Content-Type", "application/json; charset=utf-8")
+	rw.WriteHeader(http.StatusOK)
+	_, err = fmt.Fprintf(rw, script)
+	if err != nil {
+		log.Printf("Failed to write response to %q: %v", hostname, err)
+	}
+	return
+}
+
 // GenerateJSONConfig creates and returns a JSON serialized nextboot.Config
 // suitable for responding to stage2 or stage3 requests.
 func (env *Env) GenerateJSONConfig(rw http.ResponseWriter, req *http.Request) {

@@ -261,13 +261,17 @@ func TestConfig_Run(t *testing.T) {
 	tests := []struct {
 		name       string
 		action     string
+		kargs      map[string]string
 		statusPost int
 		statusGet  int
 		wantErr    bool
 	}{
 		{
-			name:       "successful-post-chain-and-get-commands",
-			action:     "epoxy.stage2",
+			name:   "successful-post-chain-and-get-commands",
+			action: "epoxy.stage2",
+			kargs: map[string]string{
+				"extra": "kargs",
+			},
 			statusPost: http.StatusOK,
 			statusGet:  http.StatusOK,
 			wantErr:    false,
@@ -308,15 +312,36 @@ func TestConfig_Run(t *testing.T) {
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(tt.statusPost)
 					// Declare a minimal config with a Chain reference to tsGet.
-					c := &Config{V1: &V1{Chain: tsGet.URL}}
+					c := &Config{Kargs: tt.kargs, V1: &V1{Chain: tsGet.URL}}
 					fmt.Fprint(w, c.String())
 				}))
+			addKargs := tt.kargs != nil
+			if addKargs {
+				// Also verify that the original Config.Kargs keys are preserved.
+				tt.kargs["epoxy.stage2"] = "This value will not be copied."
+			}
 			c := &Config{
 				// Start off initializing the stage2 action url to the tsPost test server.
 				Kargs: map[string]string{"epoxy.stage2": tsPost.URL},
 			}
-			if err := c.Run(tt.action, false); (err != nil) != tt.wantErr {
+			if err := c.Run(tt.action, addKargs, false); (err != nil) != tt.wantErr {
 				t.Errorf("Config.Run() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if addKargs {
+				if c.Kargs["epoxy.stage2"] != tsPost.URL {
+					t.Errorf("Config.Run() Kargs[epoxy.stage2] overwritten! got %q; want = %q",
+						c.Kargs["epoxy.stage2"], tsPost.URL)
+				}
+				delete(tt.kargs, "epoxy.stage2")
+				for k, vExpected := range tt.kargs {
+					if _, found := c.Kargs[k]; !found {
+						t.Errorf("Config.Run() Kargs missing key = %q", k)
+					} else {
+						if vActual := c.Kargs[k]; vExpected != vActual {
+							t.Errorf("Config.Run() Kargs value error = %v, want %v", vExpected, vActual)
+						}
+					}
+				}
 			}
 			tsPost.Close()
 			tsGet.Close()

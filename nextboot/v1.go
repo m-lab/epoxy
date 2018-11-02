@@ -72,14 +72,14 @@ func (c *Config) ParseCmdline(cmdline string) error {
 //
 // If dryrun is true, then configuration commands are printed but not executed.
 // Note: even in dryrun mode action URLS **may change state** in the ePoxy server.
-func (c *Config) Run(action string, dryrun bool) error {
+func (c *Config) Run(action string, addKargs, dryrun bool) error {
 	log.Printf("Loading config from: %s", c.Kargs[action])
 	actionURL, ok := c.Kargs[action]
 	if !ok {
 		return ErrActionURLNotFound
 	}
 	// Load config from ePoxy server.
-	err := c.loadAction(actionURL, "POST")
+	err := c.loadAction(actionURL, "POST", addKargs)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (c *Config) maybeLoadChain() error {
 	for c.V1.Chain != "" {
 		// If the Chain URL is present, run it.
 		log.Println("Running chain", c.V1.Chain)
-		err := c.loadAction(c.V1.Chain, "GET")
+		err := c.loadAction(c.V1.Chain, "GET", false)
 		if err != nil {
 			return err
 		}
@@ -372,7 +372,7 @@ func (c *Config) evaluateAsTemplate(value string, flags uint32) (string, error) 
 	return b.String(), nil
 }
 
-func (c *Config) loadAction(source, method string) error {
+func (c *Config) loadAction(source, method string, addKargs bool) error {
 	var err error
 	var body io.ReadCloser
 	var file *os.File
@@ -405,8 +405,20 @@ func (c *Config) loadAction(source, method string) error {
 	if err != nil {
 		return err
 	}
-	// Note: we never overwrite Kargs from an external source.
-	// Note: only overwrite the V1 action with what we just loaded above.
+	if addKargs {
+		// Only add new keys to c.Kargs; never overwrite existing keys.
+		for k, v := range n.Kargs {
+			if _, found := c.Kargs[k]; !found {
+				log.Printf("Info: %q=%q", k, v)
+				c.Kargs[k] = v
+			} else {
+				log.Printf("Warning: ignoring %q=%q; preserving current value %q",
+					k, v, c.Kargs[k])
+			}
+		}
+	}
+	fmt.Println(c.Kargs)
+	// Note: Overwrite the V1 action with what we just loaded above.
 	c.V1 = n.V1
 	return nil
 }

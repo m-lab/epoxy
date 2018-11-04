@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
-	"log"
 
 	"github.com/m-lab/epoxy/nextboot"
 	"github.com/m-lab/epoxy/storage"
@@ -40,6 +39,10 @@ set {{ $key }}_url {{ $value }}
 
 chain ${stage1chain_url}
 `
+
+var (
+	stage1Ipxe = template.Must(template.New("stage1").Parse(stage1IpxeTemplate))
+)
 
 // FormatStage1IPXEScript generates a stage1 iPXE boot script using values from Host.
 func FormatStage1IPXEScript(h *storage.Host, serverAddr string) string {
@@ -67,12 +70,9 @@ func FormatStage1IPXEScript(h *storage.Host, serverAddr string) string {
 	}
 	vals["Extensions"] = extensionURLs
 
-	t := template.Must(template.New("stage1").Parse(stage1IpxeTemplate))
-	err := t.Execute(&b, vals)
+	err := stage1Ipxe.Execute(&b, vals)
 	if err != nil {
-		// This error could only occur with a bad template, which should
-		// be caught by unit tests.
-		log.Print(err)
+		// Unit tests should catch this case due to bad template.
 		// Use panic instead of log.Fatal so the server can recover.
 		panic(err)
 		// TODO: return a static fallback configuration via the stage1to2_url.

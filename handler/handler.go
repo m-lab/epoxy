@@ -154,6 +154,8 @@ func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 	return
 }
 
+// TODO: consolidate logic in GenerateStage1IPXE & GenerateStage1JSON.
+
 // GenerateStage1JSON creates the stage1 JSON epoxy_client script for booting
 // machines.
 func (env *Env) GenerateStage1JSON(rw http.ResponseWriter, req *http.Request) {

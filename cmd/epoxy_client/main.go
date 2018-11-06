@@ -21,6 +21,9 @@ var (
 		"Read kernel cmdline parameters from the contents of this file.")
 	flagAction = flag.String("action", "epoxy.stage2",
 		"Execute the config loaded from the URL in this kernel parameter.")
+	flagAddKargs = flag.Bool("extra-kargs", false,
+		"Combine the local kargs with those returned from the action url. "+
+			"Existing kargs are never replaced. Only useful for stage1.")
 	flagReport = flag.String("report", "epoxy.report",
 		"Report success or errors with the URL in this kernel parameter.")
 	flagDryrun = flag.Bool("dryrun", false,
@@ -43,7 +46,7 @@ func main() {
 	c.ParseCmdline(string(b))
 
 	// Run the config loaded from the action URL.
-	err = c.Run(*flagAction, *flagDryrun)
+	err = c.Run(*flagAction, *flagAddKargs, *flagDryrun)
 	if err != nil {
 		// Define a successful result.
 		result = "error: " + err.Error()

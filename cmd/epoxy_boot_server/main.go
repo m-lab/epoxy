@@ -117,8 +117,9 @@ func newRouter(env *handler.Env) *mux.Router {
 		promhttp.InstrumentHandlerDuration(metrics.RequestDuration,
 			http.HandlerFunc(env.GenerateStage1IPXE)))
 
-	// TODO(soltesz): add a target for CD-based ePoxy clients.
-	// addRoute(router, "POST", "/v1/boot/{hostname}/stage1.json", generateStage1Json)
+	// "stage1.json" is the target for native ePoxy clients.
+	addRoute(router, "POST", "/v1/boot/{hostname}/stage1.json",
+		http.HandlerFunc(env.GenerateStage1JSON))
 
 	// TODO: make the names stage2 and stage3 arbitrary when we need to support
 	// the case where not every machine has the same stage2 or stage3.

@@ -494,3 +494,64 @@ func TestEnv_HandleExtension(t *testing.T) {
 		})
 	}
 }
+
+func TestEnv_GenerateStage1JSON(t *testing.T) {
+	h := &storage.Host{
+		Name:     "mlab1.iad1t.measurement-lab.org",
+		IPv4Addr: "165.117.240.9",
+		Boot: storage.Sequence{
+			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+		},
+	}
+	tests := []struct {
+		name   string
+		vars   map[string]string
+		req    *http.Request
+		config fakeConfig
+		from   string
+		status int
+	}{
+		{
+			name:   "okay",
+			vars:   map[string]string{"hostname": h.Name},
+			config: fakeConfig{host: h, failOnLoad: false, failOnSave: false},
+			from:   h.IPv4Addr,
+			status: http.StatusOK,
+		},
+		{
+			name:   "fail-on-load",
+			vars:   map[string]string{"hostname": h.Name},
+			config: fakeConfig{host: h, failOnLoad: true, failOnSave: false},
+			from:   h.IPv4Addr,
+			status: http.StatusNotFound,
+		},
+		{
+			name:   "fail-on-save",
+			config: fakeConfig{host: h, failOnLoad: false, failOnSave: true},
+			from:   h.IPv4Addr,
+			status: http.StatusInternalServerError,
+		},
+		{
+			name:   "fail-from-wrong-ip",
+			config: fakeConfig{host: h},
+			from:   "192.168.0.1",
+			status: http.StatusForbidden,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vars := map[string]string{"hostname": h.Name}
+			req := httptest.NewRequest("POST", "/v1/boot/"+h.Name+"/stage1.ipxe", nil)
+			req.Header.Set("X-Forwarded-For", tt.from)
+			rec := httptest.NewRecorder()
+
+			env := &Env{tt.config, "example.com:4321", true}
+			req = mux.SetURLVars(req, vars)
+			env.GenerateStage1JSON(rec, req)
+
+			if rec.Code != tt.status {
+				t.Errorf("GenerateStage1IPXE() wrong HTTP status: got %v; want %v", rec.Code, tt.status)
+			}
+		})
+	}
+}

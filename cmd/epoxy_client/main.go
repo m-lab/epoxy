@@ -21,7 +21,7 @@ var (
 		"Read kernel cmdline parameters from the contents of this file.")
 	flagAction = flag.String("action", "epoxy.stage2",
 		"Execute the config loaded from the URL in this kernel parameter.")
-	flagAddKargs = flag.Bool("extra-kargs", false,
+	flagAddKargs = flag.Bool("add-kargs", false,
 		"Combine the local kargs with those returned from the action url. "+
 			"Existing kargs are never replaced. Only useful for stage1.")
 	flagReport = flag.String("report", "epoxy.report",

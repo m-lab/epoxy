@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/url"
+	"os"
 
 	"github.com/m-lab/epoxy/nextboot"
 )
@@ -46,10 +47,10 @@ func main() {
 	c.ParseCmdline(string(b))
 
 	// Run the config loaded from the action URL.
-	err = c.Run(*flagAction, *flagAddKargs, *flagDryrun)
-	if err != nil {
+	runErr := c.Run(*flagAction, *flagAddKargs, *flagDryrun)
+	if runErr != nil {
 		// Define a successful result.
-		result = "error: " + err.Error()
+		result = "error: " + runErr.Error()
 	} else {
 		result = "success"
 	}
@@ -64,6 +65,11 @@ func main() {
 	err = c.Report(*flagReport, values, *flagDryrun)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	// Return non-zero exit code if the Run step failed.
+	if runErr != nil {
+		os.Exit(1)
 	}
 
 	// Note: we may reboot without depending on the reboot command using:

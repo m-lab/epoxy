@@ -12,10 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package command
 
-import "github.com/m-lab/epoxy/cmd/epoxy_admin/command"
+import (
+	"fmt"
 
-func main() {
-	command.Execute()
+	"github.com/spf13/cobra"
+)
+
+// listCmd represents the list command
+var listCmd = &cobra.Command{
+	Use:   "list",
+	Short: "Lists ePoxy Host records from Datastore",
+	Long: `
+USAGE:
+
+    TODO: implement list.
+`,
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("TODO: implement list")
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(listCmd)
 }

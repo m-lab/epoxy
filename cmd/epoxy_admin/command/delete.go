@@ -12,10 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package command
 
-import "github.com/m-lab/epoxy/cmd/epoxy_admin/command"
+import (
+	"fmt"
 
-func main() {
-	command.Execute()
+	"github.com/spf13/cobra"
+)
+
+// deleteCmd represents the delete command
+var deleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "Deletes an ePoxy Host record from Datastore",
+	Long: `
+USAGE:
+
+    TODO: implement delete.
+`,
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("TODO: implement delete")
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(deleteCmd)
 }

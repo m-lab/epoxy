@@ -120,20 +120,20 @@ func init() {
 		"Set Host.UpdateEnabled to true for an existing Host.")
 	createCmd.Flags().StringVar(&fBootStage1, "boot-stage1",
 		"https://storage.googleapis.com/epoxy-%s/stage3_coreos/stage1to2.ipxe",
-		"Absolute URL to an action definition to run during stage1 to boot stage2.")
+		"Absolute URL to an action definition to run during stage1 to stage2 boot.")
 	createCmd.Flags().StringVar(&fBootStage2, "boot-stage2",
 		"https://storage.googleapis.com/epoxy-%s/stage3_coreos/stage2to3.json",
-		"Absolute URL to an action definition to run during stage2 to boot stage3.")
+		"Absolute URL to an action definition to run during stage2 to stage3 boot.")
 	createCmd.Flags().StringVar(&fBootStage3, "boot-stage3",
 		"https://storage.googleapis.com/epoxy-%s/stage3_coreos/stage3post.json",
-		"Absolute URL to an action definition to run after booting stage3.")
+		"Absolute URL to an action definition to run after running stage3 boot.")
 	createCmd.Flags().StringVar(&fUpdateStage1, "update-stage1",
 		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage1to2.ipxe",
-		"Absolute URL to an action definition to run during stage1 to boot stage2.")
+		"Absolute URL to an action definition to run during stage1 to stage2 update.")
 	createCmd.Flags().StringVar(&fUpdateStage2, "update-stage2",
 		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage2to3.json",
-		"Absolute URL to an action definition to run during stage2 to boot stage3.")
+		"Absolute URL to an action definition to run during stage2 to stage3 update.")
 	createCmd.Flags().StringVar(&fUpdateStage3, "update-stage3",
 		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage3post.json",
-		"Absolute URL to an action definition to run after booting stage3.")
+		"Absolute URL to an action definition to run after running stage3 update.")
 }

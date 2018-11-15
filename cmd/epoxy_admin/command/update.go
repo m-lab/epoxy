@@ -111,15 +111,15 @@ func init() {
 	updateCmd.Flags().BoolVar(&fUpdate, "update", false,
 		"Set Host.UpdateEnabled to true for an existing Host.")
 	updateCmd.Flags().StringVar(&fBootStage1, "boot-stage1", "",
-		"Absolute URL to an action definition to run during stage1 to boot stage2.")
+		"Absolute URL to an action definition to run during stage1 to stage2 boot.")
 	updateCmd.Flags().StringVar(&fBootStage2, "boot-stage2", "",
-		"Absolute URL to an action definition to run during stage2 to boot stage3.")
+		"Absolute URL to an action definition to run during stage2 to stage3 boot.")
 	updateCmd.Flags().StringVar(&fBootStage3, "boot-stage3", "",
-		"Absolute URL to an action definition to run after booting stage3.")
+		"Absolute URL to an action definition to run after running stage3 boot.")
 	updateCmd.Flags().StringVar(&fUpdateStage1, "update-stage1", "",
-		"Absolute URL to an action definition to run during stage1 to boot stage2.")
+		"Absolute URL to an action definition to run during stage1 to stage2 update.")
 	updateCmd.Flags().StringVar(&fUpdateStage2, "update-stage2", "",
-		"Absolute URL to an action definition to run during stage2 to boot stage3.")
+		"Absolute URL to an action definition to run during stage2 to stage3 update.")
 	updateCmd.Flags().StringVar(&fUpdateStage3, "update-stage3", "",
-		"Absolute URL to an action definition to run after booting stage3.")
+		"Absolute URL to an action definition to run after running stage3 update.")
 }

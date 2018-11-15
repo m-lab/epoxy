@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/datastore"
 
@@ -65,7 +66,7 @@ func fmtURL(urlStr string) string {
 // internal fake package.
 func runCreate(cmd *cobra.Command, args []string) {
 	// Setup Datastore client.
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
 	client, err := datastore.NewClient(ctx, fProject)

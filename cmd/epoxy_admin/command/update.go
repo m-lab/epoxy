@@ -17,6 +17,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"cloud.google.com/go/datastore"
 	"github.com/m-lab/epoxy/storage"
@@ -57,7 +58,7 @@ func updateURL(url, original string) string {
 // internal fake package.
 func runUpdate(cmd *cobra.Command, args []string) {
 	// Setup Datastore client.
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
 	client, err := datastore.NewClient(ctx, fProject)

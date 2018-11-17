@@ -67,22 +67,22 @@ func runUpdate(cmd *cobra.Command, args []string) {
 	// Save the host record to Datstore.
 	ds := storage.NewDatastoreConfig(client)
 
-	h, err := ds.Load(fHostname)
-	rtx.Must(err, "Failed to load record for %q", fHostname)
-	h.UpdateEnabled = fUpdate
+	h, err := ds.Load(ufHostname)
+	rtx.Must(err, "Failed to load record for %q", ufHostname)
+	h.UpdateEnabled = ufUpdate
 	// TODO: support multiple extensions.
-	if fExtension != "" {
-		h.Extensions = []string{fExtension}
+	if ufExtension != "" {
+		h.Extensions = []string{ufExtension}
 	}
-	if fAddress != "" {
-		h.IPv4Addr = fAddress
+	if ufAddress != "" {
+		h.IPv4Addr = ufAddress
 	}
-	h.Boot.Stage1ChainURL = updateURL(fmtURL(fBootStage1), h.Boot.Stage1ChainURL)
-	h.Boot.Stage2ChainURL = updateURL(fmtURL(fBootStage2), h.Boot.Stage2ChainURL)
-	h.Boot.Stage3ChainURL = updateURL(fmtURL(fBootStage3), h.Boot.Stage3ChainURL)
-	h.Update.Stage1ChainURL = updateURL(fmtURL(fUpdateStage1), h.Update.Stage1ChainURL)
-	h.Update.Stage2ChainURL = updateURL(fmtURL(fUpdateStage2), h.Update.Stage2ChainURL)
-	h.Update.Stage3ChainURL = updateURL(fmtURL(fUpdateStage3), h.Update.Stage3ChainURL)
+	h.Boot.Stage1ChainURL = updateURL(fmtURL(ufBootStage1), h.Boot.Stage1ChainURL)
+	h.Boot.Stage2ChainURL = updateURL(fmtURL(ufBootStage2), h.Boot.Stage2ChainURL)
+	h.Boot.Stage3ChainURL = updateURL(fmtURL(ufBootStage3), h.Boot.Stage3ChainURL)
+	h.Update.Stage1ChainURL = updateURL(fmtURL(ufUpdateStage1), h.Update.Stage1ChainURL)
+	h.Update.Stage2ChainURL = updateURL(fmtURL(ufUpdateStage2), h.Update.Stage2ChainURL)
+	h.Update.Stage3ChainURL = updateURL(fmtURL(ufUpdateStage3), h.Update.Stage3ChainURL)
 
 	// Save the host record.
 	err = ds.Save(h)
@@ -99,27 +99,27 @@ func init() {
 	rootCmd.AddCommand(updateCmd)
 
 	// Required local flags.
-	updateCmd.Flags().StringVar(&fHostname, "hostname", "",
+	updateCmd.Flags().StringVar(&ufHostname, "hostname", "",
 		"Hostname of new record.")
 	updateCmd.MarkFlagRequired("hostname")
 
 	// Local flags which will only run when "update" is called directly.
-	updateCmd.Flags().StringVar(&fAddress, "address", "",
+	updateCmd.Flags().StringVar(&ufAddress, "address", "",
 		"IP address of hostname.")
-	updateCmd.Flags().StringVar(&fExtension, "extension", "",
+	updateCmd.Flags().StringVar(&ufExtension, "extension", "",
 		"Name of an extension to enable for host.")
-	updateCmd.Flags().BoolVar(&fUpdate, "update", false,
+	updateCmd.Flags().BoolVar(&ufUpdate, "update", false,
 		"Set Host.UpdateEnabled to true for an existing Host.")
-	updateCmd.Flags().StringVar(&fBootStage1, "boot-stage1", "",
+	updateCmd.Flags().StringVar(&ufBootStage1, "boot-stage1", "",
 		"Absolute URL to an action definition to run during stage1 to stage2 boot.")
-	updateCmd.Flags().StringVar(&fBootStage2, "boot-stage2", "",
+	updateCmd.Flags().StringVar(&ufBootStage2, "boot-stage2", "",
 		"Absolute URL to an action definition to run during stage2 to stage3 boot.")
-	updateCmd.Flags().StringVar(&fBootStage3, "boot-stage3", "",
+	updateCmd.Flags().StringVar(&ufBootStage3, "boot-stage3", "",
 		"Absolute URL to an action definition to run after running stage3 boot.")
-	updateCmd.Flags().StringVar(&fUpdateStage1, "update-stage1", "",
+	updateCmd.Flags().StringVar(&ufUpdateStage1, "update-stage1", "",
 		"Absolute URL to an action definition to run during stage1 to stage2 update.")
-	updateCmd.Flags().StringVar(&fUpdateStage2, "update-stage2", "",
+	updateCmd.Flags().StringVar(&ufUpdateStage2, "update-stage2", "",
 		"Absolute URL to an action definition to run during stage2 to stage3 update.")
-	updateCmd.Flags().StringVar(&fUpdateStage3, "update-stage3", "",
+	updateCmd.Flags().StringVar(&ufUpdateStage3, "update-stage3", "",
 		"Absolute URL to an action definition to run after running stage3 update.")
 }

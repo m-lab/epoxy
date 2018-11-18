@@ -17,6 +17,8 @@ package command
 import (
 	"context"
 	"fmt"
+	"log"
+	"regexp"
 	"time"
 
 	"cloud.google.com/go/datastore"
@@ -28,20 +30,24 @@ import (
 // updateCmd represents the update command
 var updateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "Updates an existing ePoxy Host record in Datastore",
+	Short: "Updates all ePoxy Host records matching --hostname pattern",
 	Long: `
 USAGE:
-	**ONLY FOR TESTING**
+    **ONLY FOR TESTING**
 
-    Updates an existing Host record with the given values. Updating a
-    non-existant host is a failure.
+    Updates Host records matching the regex pattern in the --hostname flag.
 
 EXAMPLE:
 
     # Set the "update enabled" flag on the Host record.
     epoxy_admin update --project mlab-sandbox \
-		--hostname mlab3.iad1t.measurement-lab.org \
-		--update
+        --hostname mlab3.iad1t.measurement-lab.org \
+        --update
+
+    # Set the "update enabled" flag on all mlab4 Host records.
+    epoxy_admin update --project mlab-sandbox \
+        --hostname 'mlab4.*' \
+        --update
 `,
 	Run: runUpdate,
 }
@@ -66,9 +72,30 @@ func runUpdate(cmd *cobra.Command, args []string) {
 
 	// Save the host record to Datstore.
 	ds := storage.NewDatastoreConfig(client)
+	hosts, err := ds.List()
+	rtx.Must(err, "Failed to list host records")
 
-	h, err := ds.Load(ufHostname)
-	rtx.Must(err, "Failed to load record for %q", ufHostname)
+	for _, h := range hosts {
+		if matched, err := regexp.MatchString(ufHostname, h.Name); err != nil || !matched {
+			continue
+		}
+		log.Printf("Updating: %s", h.Name)
+
+		handleUpdate(h)
+
+		// Save the host record.
+		err = ds.Save(h)
+		rtx.Must(err, "Failed to save new host record")
+
+		// Retrieve the host record from Datastore to exercise the full save & load path.
+		h, err = ds.Load(h.Name)
+		rtx.Must(err, "Failed to save new host record")
+		fmt.Println(h.String())
+	}
+	return
+}
+
+func handleUpdate(h *storage.Host) {
 	h.UpdateEnabled = ufUpdate
 	// TODO: support multiple extensions.
 	if ufExtension != "" {
@@ -83,16 +110,6 @@ func runUpdate(cmd *cobra.Command, args []string) {
 	h.Update.Stage1ChainURL = updateURL(fmtURL(ufUpdateStage1), h.Update.Stage1ChainURL)
 	h.Update.Stage2ChainURL = updateURL(fmtURL(ufUpdateStage2), h.Update.Stage2ChainURL)
 	h.Update.Stage3ChainURL = updateURL(fmtURL(ufUpdateStage3), h.Update.Stage3ChainURL)
-
-	// Save the host record.
-	err = ds.Save(h)
-	rtx.Must(err, "Failed to save new host record")
-
-	// Retrieve the host record from Datastore to exercise the full save & load path.
-	h, err = ds.Load(h.Name)
-	rtx.Must(err, "Failed to save new host record")
-	fmt.Println(h.String())
-	return
 }
 
 func init() {

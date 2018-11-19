@@ -76,19 +76,19 @@ func runCreate(cmd *cobra.Command, args []string) {
 	ds := storage.NewDatastoreConfig(client)
 
 	h := &storage.Host{
-		Name:          fHostname,
-		IPv4Addr:      fAddress,
-		UpdateEnabled: fUpdate,
-		Extensions:    []string{fExtension},
+		Name:          cfHostname,
+		IPv4Addr:      cfAddress,
+		UpdateEnabled: cfUpdate,
+		Extensions:    []string{cfExtension},
 		Boot: storage.Sequence{
-			Stage1ChainURL: fmtURL(fBootStage1),
-			Stage2ChainURL: fmtURL(fBootStage2),
-			Stage3ChainURL: fmtURL(fBootStage3),
+			Stage1ChainURL: fmtURL(cfBootStage1),
+			Stage2ChainURL: fmtURL(cfBootStage2),
+			Stage3ChainURL: fmtURL(cfBootStage3),
 		},
 		Update: storage.Sequence{
-			Stage1ChainURL: fmtURL(fUpdateStage1),
-			Stage2ChainURL: fmtURL(fUpdateStage2),
-			Stage3ChainURL: fmtURL(fUpdateStage3),
+			Stage1ChainURL: fmtURL(cfUpdateStage1),
+			Stage2ChainURL: fmtURL(cfUpdateStage2),
+			Stage3ChainURL: fmtURL(cfUpdateStage3),
 		},
 	}
 
@@ -106,34 +106,34 @@ func init() {
 	rootCmd.AddCommand(createCmd)
 
 	// Required local flags.
-	createCmd.Flags().StringVar(&fHostname, "hostname", "",
+	createCmd.Flags().StringVar(&cfHostname, "hostname", "",
 		"Hostname of new record.")
-	createCmd.Flags().StringVar(&fAddress, "address", "",
+	createCmd.Flags().StringVar(&cfAddress, "address", "",
 		"IP address of hostname.")
 	createCmd.MarkFlagRequired("hostname")
 	createCmd.MarkFlagRequired("address")
 
 	// Local flags which will only apply when "create" is called directly.
-	createCmd.Flags().StringVar(&fExtension, "extension", "allocate_k8s_token",
+	createCmd.Flags().StringVar(&cfExtension, "extension", "allocate_k8s_token",
 		"Name of an extension to enable for host.")
-	createCmd.Flags().BoolVar(&fUpdate, "update", false,
+	createCmd.Flags().BoolVar(&cfUpdate, "update", false,
 		"Set Host.UpdateEnabled to true for an existing Host.")
-	createCmd.Flags().StringVar(&fBootStage1, "boot-stage1",
+	createCmd.Flags().StringVar(&cfBootStage1, "boot-stage1",
 		"https://storage.googleapis.com/epoxy-%s/stage3_coreos/stage1to2.ipxe",
 		"Absolute URL to an action definition to run during stage1 to stage2 boot.")
-	createCmd.Flags().StringVar(&fBootStage2, "boot-stage2",
+	createCmd.Flags().StringVar(&cfBootStage2, "boot-stage2",
 		"https://storage.googleapis.com/epoxy-%s/stage3_coreos/stage2to3.json",
 		"Absolute URL to an action definition to run during stage2 to stage3 boot.")
-	createCmd.Flags().StringVar(&fBootStage3, "boot-stage3",
+	createCmd.Flags().StringVar(&cfBootStage3, "boot-stage3",
 		"https://storage.googleapis.com/epoxy-%s/stage3_coreos/stage3post.json",
 		"Absolute URL to an action definition to run after running stage3 boot.")
-	createCmd.Flags().StringVar(&fUpdateStage1, "update-stage1",
+	createCmd.Flags().StringVar(&cfUpdateStage1, "update-stage1",
 		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage1to2.ipxe",
 		"Absolute URL to an action definition to run during stage1 to stage2 update.")
-	createCmd.Flags().StringVar(&fUpdateStage2, "update-stage2",
+	createCmd.Flags().StringVar(&cfUpdateStage2, "update-stage2",
 		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage2to3.json",
 		"Absolute URL to an action definition to run during stage2 to stage3 update.")
-	createCmd.Flags().StringVar(&fUpdateStage3, "update-stage3",
+	createCmd.Flags().StringVar(&cfUpdateStage3, "update-stage3",
 		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage3post.json",
 		"Absolute URL to an action definition to run after running stage3 update.")
 }

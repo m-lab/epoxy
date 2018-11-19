@@ -75,8 +75,12 @@ func runUpdate(cmd *cobra.Command, args []string) {
 	hosts, err := ds.List()
 	rtx.Must(err, "Failed to list host records")
 
+	// Compile given regex.
+	r, err := regexp.Compile(ufHostname)
+	rtx.Must(err, "Failed to compile given hostname pattern: %q", ufHostname)
+
 	for _, h := range hosts {
-		if matched, err := regexp.MatchString(ufHostname, h.Name); err != nil || !matched {
+		if !r.MatchString(h.Name) {
 			continue
 		}
 		log.Printf("Updating: %s", h.Name)

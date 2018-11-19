@@ -26,19 +26,33 @@ var (
 	fProject string
 )
 
-// Flag variables used only by the create & update commands. Since only one
-// command is ever run at a time, it is safe to use them for both cases.
+// Flag variables used only by the create & update commands. Since flags and
+// their default values are defined in init(), we need separate variables for
+// different default values.
 var (
-	fHostname     string
-	fAddress      string
-	fExtension    string
-	fUpdate       bool
-	fBootStage1   string
-	fBootStage2   string
-	fBootStage3   string
-	fUpdateStage1 string
-	fUpdateStage2 string
-	fUpdateStage3 string
+	// Create flags.
+	cfHostname     string
+	cfAddress      string
+	cfExtension    string
+	cfUpdate       bool
+	cfBootStage1   string
+	cfBootStage2   string
+	cfBootStage3   string
+	cfUpdateStage1 string
+	cfUpdateStage2 string
+	cfUpdateStage3 string
+
+	// Update flags.
+	ufHostname     string
+	ufAddress      string
+	ufExtension    string
+	ufUpdate       bool
+	ufBootStage1   string
+	ufBootStage2   string
+	ufBootStage3   string
+	ufUpdateStage1 string
+	ufUpdateStage2 string
+	ufUpdateStage3 string
 )
 
 // rootCmd represents the base command when called without any subcommands

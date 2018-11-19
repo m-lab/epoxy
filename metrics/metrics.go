@@ -91,6 +91,10 @@ func (col *Collector) Collect(ch chan<- prometheus.Metric) {
 	}
 	for i := range hosts {
 		var ts float64
+		if hosts[i].LastSessionCreation.IsZero() || hosts[i].LastSuccess.IsZero() {
+			// Skip reporting metrics for hosts that have never booted.
+			continue
+		}
 		switch col.name {
 		case "epoxy_last_boot":
 			ts = float64(hosts[i].LastSessionCreation.UnixNano()) / 1e9

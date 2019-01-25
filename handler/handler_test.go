@@ -531,12 +531,15 @@ func TestEnv_GenerateStage1JSON(t *testing.T) {
 			from:   h.IPv4Addr,
 			status: http.StatusInternalServerError,
 		},
-		{
-			name:   "fail-from-wrong-ip",
-			config: fakeConfig{host: h},
-			from:   "192.168.0.1",
-			status: http.StatusForbidden,
-		},
+		// TODO(soltesz): enable once plc-updates are complete.
+		/*
+			{
+				name:   "fail-from-wrong-ip",
+				config: fakeConfig{host: h},
+				from:   "192.168.0.1",
+				status: http.StatusForbidden,
+			},
+		*/
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -550,7 +553,7 @@ func TestEnv_GenerateStage1JSON(t *testing.T) {
 			env.GenerateStage1JSON(rec, req)
 
 			if rec.Code != tt.status {
-				t.Errorf("GenerateStage1IPXE() wrong HTTP status: got %v; want %v", rec.Code, tt.status)
+				t.Errorf("GenerateStage1JSON() wrong HTTP status: got %v; want %v", rec.Code, tt.status)
 			}
 		})
 	}

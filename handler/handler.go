@@ -168,11 +168,13 @@ func (env *Env) GenerateStage1JSON(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = env.requestIsFromHost(req, host)
+	// TODO(soltesz): re-enable once PLC updates are completed.
+	/* err = env.requestIsFromHost(req, host)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusForbidden)
 		return
 	}
+	*/
 
 	// TODO(soltesz):
 	// * Save information sent in PostForm.

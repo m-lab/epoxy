@@ -36,6 +36,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -210,7 +211,11 @@ func main() {
 		}
 		// The strongest RSA cipher supported by both iPXE & Go.
 		// TODO: restricted cipher suites fail to support ACME registration...
-		// cfg.CipherSuites = []uint16{tls.TLS_RSA_WITH_AES_256_CBC_SHA}
+		cfg.CipherSuites = []uint16{
+			tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
+		}
 
 		// Server with custom TLS config.
 		s := &http.Server{

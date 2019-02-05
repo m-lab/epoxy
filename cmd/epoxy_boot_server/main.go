@@ -205,12 +205,13 @@ func main() {
 		}
 		// Restricted TLS config.
 		cfg := m.TLSConfig()
-		fmt.Println("Resetting CipherSuites:")
+		fmt.Println("Resetting CipherSuites:", len(cfg.CipherSuites))
 		for i := range cfg.CipherSuites {
 			fmt.Println(i, cfg.CipherSuites[i])
 		}
 		// The strongest RSA cipher supported by both iPXE & Go.
-		cfg.CipherSuites = []uint16{tls.TLS_RSA_WITH_AES_256_CBC_SHA}
+		// TODO: restricted cipher suites fail to support ACME registration...
+		// cfg.CipherSuites = []uint16{tls.TLS_RSA_WITH_AES_256_CBC_SHA}
 
 		// Server with custom TLS config.
 		s := &http.Server{

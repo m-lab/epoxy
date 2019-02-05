@@ -224,7 +224,7 @@ func main() {
 			Handler:   newRouter(env),
 			TLSConfig: cfg,
 			// Disable HTTP/2 b/c it is unsupported by ipxe clients.
-			// TLSNextProto: map[string]func(*http.Server, *tls.Conn, http.Handler){},
+			TLSNextProto: map[string]func(*http.Server, *tls.Conn, http.Handler){},
 		}
 		log.Fatal(s.ListenAndServeTLS("", ""))
 		// l := autocert.NewListener()

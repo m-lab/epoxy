@@ -36,6 +36,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -48,6 +49,8 @@ import (
 	"github.com/m-lab/epoxy/storage"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"golang.org/x/crypto/acme/autocert"
 )
 
 var (
@@ -193,5 +196,34 @@ func main() {
 		AllowForwardedRequests: allowForwardedRequests,
 	}
 	go setupMetricsHandler(dsCfg)
-	http.ListenAndServe(addr, newRouter(env))
+	if publicAddr != "" && os.Getenv("GAE_SERVICE") == "" {
+		// We are NOT running in AppEngine, so allocate our own certificates.
+		m := &autocert.Manager{
+			Cache:      autocert.DirCache("autocert.cache"),
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist(publicAddr),
+		}
+		// Restricted TLS config.
+		cfg := m.TLSConfig()
+		fmt.Println("Resetting CipherSuites:")
+		for i := range cfg.CipherSuites {
+			fmt.Println(i, cfg.CipherSuites[i])
+		}
+		// The strongest RSA cipher supported by both iPXE & Go.
+		cfg.CipherSuites = []uint16{tls.TLS_RSA_WITH_AES_256_CBC_SHA}
+
+		// Server with custom TLS config.
+		s := &http.Server{
+			Addr:      addr,
+			Handler:   newRouter(env),
+			TLSConfig: cfg,
+			// Disable HTTP/2 b/c it is unsupported by ipxe clients.
+			TLSNextProto: map[string]func(*http.Server, *tls.Conn, http.Handler){},
+		}
+		log.Fatal(s.ListenAndServeTLS("", ""))
+		// l := autocert.NewListener()
+		// log.Fatal(http.Serve(autocert.NewListener(), newRouter(env)))
+	} else {
+		log.Fatal(http.ListenAndServe(addr, newRouter(env)))
+	}
 }

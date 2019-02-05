@@ -215,6 +215,7 @@ func main() {
 			tls.TLS_RSA_WITH_AES_128_CBC_SHA,
 			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 			tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
+			tls.TLS_AES_128_GCM_SHA256,
 		}
 
 		// Server with custom TLS config.

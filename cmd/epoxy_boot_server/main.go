@@ -78,6 +78,10 @@ var (
 	// allowForwardedRequests controls how the ePoxy server evaluates and applies
 	// the Host IP whitelist to incoming requests.
 	allowForwardedRequests = false
+
+	// serverCert and serverKey are the filenames to the ipxe server.
+	serverCert = os.Getenv("IPXE_CERT_FILE")
+	serverKey  = os.Getenv("IPXE_KEY_FILE")
 )
 
 // init checks the environment for configuration values.
@@ -197,37 +201,41 @@ func main() {
 	}
 	go setupMetricsHandler(dsCfg)
 	if publicAddr != "" && os.Getenv("GAE_SERVICE") == "" {
-		// We are NOT running in AppEngine, so allocate our own certificates.
+		// We are NOT running in AppEngine so we can open multiple ports.
+
+		r := newRouter(env)
+
+		// NB: load ipxe port with private certificate.
+		server := &http.Server{
+			Addr:    addr + "0",
+			Handler: r,
+			TLSConfig: &tls.Config{
+				// The strongest RSA cipher supported by both iPXE & Go.
+				CipherSuites: []uint16{tls.TLS_RSA_WITH_AES_256_CBC_SHA},
+				// TLS v1.0 needed by CentOS 6 installer to fetch install.img.
+				// TODO: Increase this when possible.
+				MinVersion: tls.VersionTLS10,
+			},
+			// Disable automatic http2 support, which requires different ciphers.
+			TLSNextProto: map[string]func(*http.Server, *tls.Conn, http.Handler){},
+		}
+
+		if serverCert == "" || serverKey == "" {
+			log.Fatal("Both IPXE_CERT_FILE and IPXE_KEY_FILE must be specified.")
+		}
+		go log.Fatal(server.ListenAndServeTLS(serverCert, serverKey))
+
+		// NB: allocate stanard TLS port using LetsEncrypt certificates.
 		m := &autocert.Manager{
 			Cache:      autocert.DirCache("autocert.cache"),
 			Prompt:     autocert.AcceptTOS,
 			HostPolicy: autocert.HostWhitelist(publicAddr),
 		}
-		// Restricted TLS config.
-		cfg := m.TLSConfig()
-		fmt.Println("Resetting CipherSuites:", len(cfg.CipherSuites))
-		for i := range cfg.CipherSuites {
-			fmt.Println(i, cfg.CipherSuites[i])
-		}
-		// The strongest RSA cipher supported by both iPXE & Go.
-		// TODO: restricted cipher suites fail to support ACME registration...
-		cfg.CipherSuites = []uint16{
-			tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
-			tls.TLS_AES_128_GCM_SHA256,
-		}
-		cfg.MinVersion = tls.VersionTLS10
-		// NOTE: TLS1.3 does not allow specifying ciphers.
-		cfg.MaxVersion = tls.VersionTLS12
-
 		// Server with custom TLS config.
 		s := &http.Server{
 			Addr:      addr,
-			Handler:   newRouter(env),
-			TLSConfig: cfg,
-			// Disable HTTP/2 b/c it is unsupported by ipxe clients.
-			TLSNextProto: map[string]func(*http.Server, *tls.Conn, http.Handler){},
+			Handler:   r,
+			TLSConfig: m.TLSConfig(),
 		}
 		log.Fatal(s.ListenAndServeTLS("", ""))
 		// l := autocert.NewListener()

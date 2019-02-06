@@ -36,7 +36,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -205,21 +204,11 @@ func main() {
 
 		r := newRouter(env)
 
-		// NB: load ipxe port with private certificate.
+		// NB: allocate ipxe TLS port with private certificate.
 		server := &http.Server{
 			Addr:    addr + "0",
 			Handler: r,
-			TLSConfig: &tls.Config{
-				// The strongest RSA cipher supported by both iPXE & Go.
-				CipherSuites: []uint16{tls.TLS_RSA_WITH_AES_256_CBC_SHA},
-				// TLS v1.0 needed by CentOS 6 installer to fetch install.img.
-				// TODO: Increase this when possible.
-				MinVersion: tls.VersionTLS10,
-			},
-			// Disable automatic http2 support, which requires different ciphers.
-			TLSNextProto: map[string]func(*http.Server, *tls.Conn, http.Handler){},
 		}
-
 		if serverCert == "" || serverKey == "" {
 			log.Fatal("Both IPXE_CERT_FILE and IPXE_KEY_FILE must be specified.")
 		}
@@ -240,8 +229,7 @@ func main() {
 			TLSConfig: m.TLSConfig(),
 		}
 		log.Fatal(s.ListenAndServeTLS("", ""))
-		// l := autocert.NewListener()
-		// log.Fatal(http.Serve(autocert.NewListener(), newRouter(env)))
+
 	} else {
 		log.Fatal(http.ListenAndServe(addr, newRouter(env)))
 	}

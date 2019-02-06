@@ -29,12 +29,12 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/kr/pretty"
 	"github.com/m-lab/epoxy/extension"
 	"github.com/m-lab/epoxy/metrics"
 	"github.com/m-lab/epoxy/storage"
 	"github.com/m-lab/epoxy/template"
 	"github.com/m-lab/go/rtx"
+	"github.com/stephen-soltesz/pretty"
 )
 
 // Config provides access to Host records.
@@ -323,19 +323,25 @@ func newGCSGetReverseProxy(project string) *httputil.ReverseProxy {
 	rtx.Must(err, "Failed to parse static GCS URL")
 
 	director := func(req *http.Request) {
+		req.Host = req.URL.Host
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
-		if strings.HasPrefix(req.URL.Path, "/") {
-			req.URL.Path = target.Path + req.URL.Path
-		} else {
-			req.URL.Path = target.Path + "/" + req.URL.Path
-		}
+		req.URL.Path = target.Path + "/" + req.URL.Path
 		req.URL.RawQuery = "" // Reject any given query parameters.
+
 		if _, ok := req.Header["User-Agent"]; !ok {
 			// Explicitly disable User-Agent so it's not set to default value.
 			req.Header.Set("User-Agent", "")
 		}
-		log.Println("proxy", pretty.Sprint(req.URL))
+		log.Println("proxy", req.Method, req.URL)
+		log.Println(
+			req.RemoteAddr,
+			req.Method,
+			req.Host,
+			req.Header,
+			req.RequestURI,
+		)
+		log.Println(pretty.Sprint(req.URL))
 	}
 	return &httputil.ReverseProxy{Director: director}
 }

@@ -323,7 +323,7 @@ func newGCSGetReverseProxy(project string) *httputil.ReverseProxy {
 	rtx.Must(err, "Failed to parse static GCS URL")
 
 	director := func(req *http.Request) {
-		req.Host = req.URL.Host
+		req.Host = target.Host
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
 		req.URL.Path = target.Path + "/" + req.URL.Path
@@ -334,13 +334,7 @@ func newGCSGetReverseProxy(project string) *httputil.ReverseProxy {
 			req.Header.Set("User-Agent", "")
 		}
 		log.Println("proxy", req.Method, req.URL)
-		log.Println(
-			req.RemoteAddr,
-			req.Method,
-			req.Host,
-			req.Header,
-			req.RequestURI,
-		)
+		log.Println(req.RemoteAddr, req.Method, req.Host, req.Header, req.RequestURI)
 		log.Println(pretty.Sprint(req.URL))
 	}
 	return &httputil.ReverseProxy{Director: director}

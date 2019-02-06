@@ -217,6 +217,9 @@ func main() {
 			tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
 			tls.TLS_AES_128_GCM_SHA256,
 		}
+		cfg.MinVersion = tls.VersionTLS10
+		// NOTE: TLS1.3 does not allow specifying ciphers.
+		cfg.MaxVersion = tls.VersionTLS12
 
 		// Server with custom TLS config.
 		s := &http.Server{

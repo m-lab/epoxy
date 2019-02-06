@@ -223,7 +223,9 @@ func main() {
 		if serverCert == "" || serverKey == "" {
 			log.Fatal("Both IPXE_CERT_FILE and IPXE_KEY_FILE must be specified.")
 		}
-		go log.Fatal(server.ListenAndServeTLS(serverCert, serverKey))
+		go func() {
+			log.Fatal(server.ListenAndServeTLS(serverCert, serverKey))
+		}()
 
 		// NB: allocate stanard TLS port using LetsEncrypt certificates.
 		m := &autocert.Manager{

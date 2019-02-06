@@ -40,6 +40,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 
 	"cloud.google.com/go/datastore"
 	"github.com/gorilla/mux"
@@ -81,6 +82,9 @@ var (
 	// serverCert and serverKey are the filenames to the ipxe server.
 	serverCert = os.Getenv("IPXE_CERT_FILE")
 	serverKey  = os.Getenv("IPXE_KEY_FILE")
+
+	// enableLetsEncrypt enables allocation of let's encrypt certs. Should be disabled for testing.
+	enableLetEncrypt = os.Getenv("ENABLE_LETSENCRYPT")
 )
 
 // init checks the environment for configuration values.
@@ -151,6 +155,11 @@ func newRouter(env *handler.Env) *mux.Router {
 	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionID}/extension/{operation}",
 		http.HandlerFunc(env.HandleExtension))
 
+	// GCS Proxy.
+	// router.Methods("GET").PathPrefix("/v1/gcsproxy").Handler(
+	// 	http.HandlerFunc(env.HandleProxy))
+	addRoute(router, "GET", "/v1/gcsproxy/{path:.*}",
+		http.HandlerFunc(env.HandleProxy))
 	return router
 }
 
@@ -197,6 +206,7 @@ func main() {
 		Config:                 dsCfg,
 		ServerAddr:             publicAddr,
 		AllowForwardedRequests: allowForwardedRequests,
+		Project:                projectID,
 	}
 	go setupMetricsHandler(dsCfg)
 	if publicAddr != "" && os.Getenv("GAE_SERVICE") == "" {
@@ -216,19 +226,25 @@ func main() {
 			log.Fatal(server.ListenAndServeTLS(serverCert, serverKey))
 		}()
 
-		// NB: allocate stanard TLS port using LetsEncrypt certificates.
-		m := &autocert.Manager{
-			Cache:      autocert.DirCache("autocert.cache"),
-			Prompt:     autocert.AcceptTOS,
-			HostPolicy: autocert.HostWhitelist(publicAddr),
+		if enableLetEncrypt == "true" {
+			// NB: allocate stanard TLS port using LetsEncrypt certificates.
+			m := &autocert.Manager{
+				Cache:      autocert.DirCache("autocert.cache"),
+				Prompt:     autocert.AcceptTOS,
+				HostPolicy: autocert.HostWhitelist(publicAddr),
+			}
+			// Server with custom TLS config.
+			s := &http.Server{
+				Addr:      addr,
+				Handler:   r,
+				TLSConfig: m.TLSConfig(),
+			}
+			log.Fatal(s.ListenAndServeTLS("", ""))
 		}
-		// Server with custom TLS config.
-		s := &http.Server{
-			Addr:      addr,
-			Handler:   r,
-			TLSConfig: m.TLSConfig(),
-		}
-		log.Fatal(s.ListenAndServeTLS("", ""))
+
+		mux := sync.Mutex{}
+		mux.Lock()
+		mux.Lock() // deadlock.
 
 	} else {
 		log.Fatal(http.ListenAndServe(addr, newRouter(env)))

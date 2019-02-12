@@ -87,7 +87,7 @@ func TestNewDatastoreClient(t *testing.T) {
 	f := &fakeDatastoreClient{&h}
 	c := NewDatastoreConfig(f)
 
-	h2, err := c.Load("malb1.iad1t.measurement-lab.org")
+	h2, err := c.Load("mlab1.iad1t.measurement-lab.org")
 	if err != nil {
 		t.Fatal(err)
 	}

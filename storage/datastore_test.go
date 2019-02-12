@@ -80,6 +80,22 @@ func (f *errDatastoreClient) GetAll(ctx context.Context, q *datastore.Query, dst
 	return nil, f.err
 }
 
+func TestNewDatastoreClient(t *testing.T) {
+	h := Host{
+		Name: "mlab1.iad1t.measurement-lab.org",
+	}
+	f := &fakeDatastoreClient{&h}
+	c := NewDatastoreConfig(f)
+
+	h2, err := c.Load("malb1.iad1t.measurement-lab.org")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h.Name != h2.Name {
+		t.Errorf("Load for NewDatastoreConfig failed; want %q, got %q", h.Name, h2.Name)
+	}
+}
+
 func TestDatastore(t *testing.T) {
 	// NB: we store a partial Host record for brevity.
 	h := Host{

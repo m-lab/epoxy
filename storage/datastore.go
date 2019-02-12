@@ -33,7 +33,7 @@ type DatastoreConfig struct {
 }
 
 // NewDatastoreConfig creates a new DatastoreConfig instance from a *datastore.Client.
-func NewDatastoreConfig(client *datastore.Client) *DatastoreConfig {
+func NewDatastoreConfig(client iface.DatastoreClient) *DatastoreConfig {
 	return &DatastoreConfig{client}
 }
 

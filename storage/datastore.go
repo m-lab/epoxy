@@ -19,6 +19,7 @@ import (
 	"context"
 
 	"cloud.google.com/go/datastore"
+	"github.com/m-lab/epoxy/storage/iface"
 )
 
 const (
@@ -28,7 +29,7 @@ const (
 
 // DatastoreConfig contains configuration for accessing Google Cloud Datastore.
 type DatastoreConfig struct {
-	client datastoreClient
+	Client iface.DatastoreClient
 }
 
 // NewDatastoreConfig creates a new DatastoreConfig instance from a *datastore.Client.
@@ -40,7 +41,7 @@ func NewDatastoreConfig(client *datastore.Client) *DatastoreConfig {
 func (c *DatastoreConfig) Load(name string) (*Host, error) {
 	h := &Host{}
 	key := datastore.NameKey(entityKind, name, nil)
-	if err := c.client.Get(context.Background(), key, h); err != nil {
+	if err := c.Client.Get(context.Background(), key, h); err != nil {
 		return nil, err
 	}
 	return h, nil
@@ -50,7 +51,7 @@ func (c *DatastoreConfig) Load(name string) (*Host, error) {
 // a Host record already exists, then it is overwritten.
 func (c *DatastoreConfig) Save(host *Host) error {
 	key := datastore.NameKey(entityKind, host.Name, nil)
-	if _, err := c.client.Put(context.Background(), key, host); err != nil {
+	if _, err := c.Client.Put(context.Background(), key, host); err != nil {
 		return err
 	}
 	return nil
@@ -62,22 +63,9 @@ func (c *DatastoreConfig) List() ([]*Host, error) {
 	var hosts []*Host
 	q := datastore.NewQuery(entityKind)
 	// Discard array of keys returned since we only need the values in hosts.
-	_, err := c.client.GetAll(context.Background(), q, &hosts)
+	_, err := c.Client.GetAll(context.Background(), q, &hosts)
 	if err != nil {
 		return nil, err
 	}
 	return hosts, nil
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// Interfaces for testing.
-
-// datastoreClient is a private interface to make testing possible. The default
-// implementation is the actual *datastore.Client as returned by
-// datastore.NewClient. For testing, create a DatastoreConfig initialized with a
-// fake implementation of the datastoreClient interface.
-type datastoreClient interface {
-	Get(ctx context.Context, key *datastore.Key, dst interface{}) error
-	Put(ctx context.Context, key *datastore.Key, src interface{}) (*datastore.Key, error)
-	GetAll(ctx context.Context, q *datastore.Query, dst interface{}) ([]*datastore.Key, error)
 }

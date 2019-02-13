@@ -76,9 +76,6 @@ var (
 	// bindPort may be set using the PORT environment variable.
 	bindPort = "8080"
 
-	// tlsPort may not be overridden.
-	tlsPort = "443"
-
 	// allowForwardedRequests controls how the ePoxy server evaluates and applies
 	// the Host IP whitelist to incoming requests.
 	// DEPRECATED.
@@ -87,9 +84,11 @@ var (
 	// serverCert and serverKey are the filenames for the iPXE server certificate.
 	serverCert = os.Getenv("IPXE_CERT_FILE")
 	serverKey  = os.Getenv("IPXE_KEY_FILE")
+)
 
-	// Create a unified context and a cancel method for main().
-	ctx, cancelCtx = context.WithCancel(context.Background())
+const (
+	// tlsPort is the standard TLS port.
+	tlsPort = "443"
 )
 
 // init checks the environment for configuration values.
@@ -186,13 +185,6 @@ func setupMetricsHandler(dsCfg *storage.DatastoreConfig) *http.ServeMux {
 	return mux
 }
 
-func setupPXEServer(addr string, r *mux.Router) *http.Server {
-	return &http.Server{
-		Addr:    addr,
-		Handler: r,
-	}
-}
-
 func setupLetsEncryptServer(addr string, r *mux.Router, hostname string) *http.Server {
 	// We will listen on standard TLS port using LetsEncrypt certificates.
 	m := &autocert.Manager{
@@ -222,24 +214,36 @@ func startMetricsServerAsync(dsCfg *storage.DatastoreConfig) {
 
 func startAppEngineServerAsync(addr string, router *mux.Router) {
 	// Start the standard PXE server with the default address.
-	ipxeServer := setupPXEServer(addr, router)
+	ipxeServer := &http.Server{
+		Addr:    addr,
+		Handler: router,
+	}
 	httpx.ListenAndServeAsync(ipxeServer)
 }
 
-func startTLSServerAsync(addr string, router *mux.Router, hostname string) {
+func startTLSServerAsync(bindAddr string, router *mux.Router, hostname string) {
+	tlsAddr := fmt.Sprintf("%s:%s", bindAddr, tlsPort)
 	// Allocate and use LetsEncrypt certificates on given port.
-	tlsServer := setupLetsEncryptServer(addr, router, hostname)
+	tlsServer := setupLetsEncryptServer(tlsAddr, router, hostname)
 	// Certificates are already configured in the server.TLSConfig.
 	httpx.ListenAndServeTLSAsync(tlsServer, "", "")
 
 	// Because we're running LetsEncrypt certificates on the given port,
-	// run the iPXE server on a higher port.
-	ipxeServer := setupPXEServer(addr+"0", router)
+	// run the iPXE server on a higher port, e.g. "4430".
+	ipxeServer := &http.Server{
+		Addr:    tlsAddr + "0",
+		Handler: router,
+	}
 	if serverCert == "" || serverKey == "" {
 		log.Fatalln("WARNING: IPXE_CERT_FILE and IPXE_KEY_FILE were not specified.")
 	}
 	httpx.ListenAndServeTLSAsync(ipxeServer, serverCert, serverKey)
 }
+
+var (
+	// Create a unified context and a cancel method for main().
+	ctx, cancelCtx = context.WithCancel(context.Background())
+)
 
 func main() {
 	defer cancelCtx()
@@ -250,9 +254,6 @@ func main() {
 	if publicHostname == "" {
 		log.Fatalf("Environment variable PUBLIC_HOSTNAME must specify a public service name.")
 	}
-
-	tlsAddr := fmt.Sprintf("%s:%s", bindAddress, tlsPort)
-	pxeAddr := fmt.Sprintf("%s:%s", bindAddress, bindPort)
 
 	client, err := datastore.NewClient(ctx, projectID)
 	rtx.Must(err, "Failed to create new datastore client")
@@ -267,11 +268,14 @@ func main() {
 	startMetricsServerAsync(dsCfg)
 	router := newRouter(env)
 	if service := os.Getenv("GAE_SERVICE"); service != "" {
-		startAppEngineServerAsync(pxeAddr, router)
+		addr := fmt.Sprintf("%s:%s", bindAddress, bindPort)
+		startAppEngineServerAsync(addr, router)
 	} else {
-		startTLSServerAsync(tlsAddr, router, publicHostname)
+		// Always use the tlsPort on given bindAddress.
+		startTLSServerAsync(bindAddress, router, publicHostname)
 	}
 
+	// All HTTP servers are started asynchronously. Block until global context is
+	// canceled (used by integration tests).
 	<-ctx.Done()
-
 }

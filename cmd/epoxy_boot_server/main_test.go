@@ -19,15 +19,13 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
+	"os"
 	"testing"
 	"time"
 
 	"cloud.google.com/go/datastore"
-	"github.com/gorilla/mux"
 	"github.com/m-lab/epoxy/storage"
 	"github.com/prometheus/prometheus/util/promlint"
 )
@@ -87,7 +85,6 @@ func Test_setupMetricsHandler(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not read metrics: %v", err)
 	}
-	log.Println(string(metricBytes))
 	metricsLinter := promlint.New(bytes.NewBuffer(metricBytes))
 	problems, err := metricsLinter.Lint()
 	if err != nil {
@@ -98,23 +95,26 @@ func Test_setupMetricsHandler(t *testing.T) {
 	}
 }
 
-func Test_setupPXEServer(t *testing.T) {
-	type args struct {
-		addr string
-		r    *mux.Router
+func Test_main(t *testing.T) {
+	projectID = "mlab-testing"
+	publicHostname = "fake.public.hostname.com"
+	bindAddress = "localhost"
+	bindPort = "8800"
+	os.Setenv("GAE_SERVICE", "fake") // Simulate deployment in AE.
+	go main()
+	time.Sleep(1 * time.Second)
+	// TODO: replace test with actual datastore records.
+	//       "/v1/boot/mlab1.foo01.measurement-lab.org/stage1.ixpe"
+	health, err := http.Get("http://localhost:8800/_ah/health")
+	if err != nil || health == nil {
+		t.Errorf("Could not GET health: %v", err)
 	}
-	tests := []struct {
-		name string
-		args args
-		want *http.Server
-	}{
-		// TODO: Add test cases.
+	bytes, err := ioutil.ReadAll(health.Body)
+	if err != nil {
+		t.Errorf("Could not read health: %v", err)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := setupPXEServer(tt.args.addr, tt.args.r); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("setupPXEServer() = %v, want %v", got, tt.want)
-			}
-		})
+	if string(bytes) != "ok" {
+		t.Errorf("Could not read health: got %q, want 'ok'", string(bytes))
 	}
+	cancelCtx()
 }

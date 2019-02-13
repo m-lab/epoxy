@@ -241,7 +241,8 @@ func startTLSServerAsync(bindAddr string, router *mux.Router, hostname string) {
 }
 
 var (
-	// Create a unified context and a cancel method for main().
+	// Create a unified context and a cancel method for main(). Allows main to
+	// block until global context is canceled by integration tests.
 	ctx, cancelCtx = context.WithCancel(context.Background())
 )
 

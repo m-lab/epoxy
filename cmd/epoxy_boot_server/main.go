@@ -85,10 +85,6 @@ var (
 	serverCert = os.Getenv("IPXE_CERT_FILE")
 	serverKey  = os.Getenv("IPXE_KEY_FILE")
 
-	// enableLetsEncrypt enables allocation of let's encrypt certs. Should be
-	// disabled for testing.
-	enableLetsEncrypt = os.Getenv("ENABLE_LETSENCRYPT")
-
 	// Create a unified context and a cancel method for main().
 	ctx, cancelCtx = context.WithCancel(context.Background())
 )
@@ -212,17 +208,28 @@ func setupLetsEncryptServer(addr string, r *mux.Router, hostname string) *http.S
 	}
 }
 
+func startMetricsServerAsync(dsCfg *storage.DatastoreConfig) {
+	mux := setupMetricsHandler(dsCfg)
+	s := &http.Server{
+		Addr:    ":9000",
+		Handler: mux,
+	}
+	httpx.ListenAndServeAsync(s)
+}
+
 func startAppEngineServerAsync(addr string, router *mux.Router) {
+	// Start the standard PXE server with the default address.
 	ipxeServer := setupPXEServer(addr, router)
 	httpx.ListenAndServeAsync(ipxeServer)
 }
 
 func startTLSServerAsync(addr string, router *mux.Router, hostname string) {
+	// Allocate and use LetsEncrypt certificates on given port.
 	tlsServer := setupLetsEncryptServer(addr, router, hostname)
 	// Certificates are already configured in the server.TLSConfig.
 	httpx.ListenAndServeTLSAsync(tlsServer, "", "")
 
-	// Because we're running LetsEncrypt certificates on the standard TLS port,
+	// Because we're running LetsEncrypt certificates on the given port,
 	// run the iPXE server on a higher port.
 	ipxeServer := setupPXEServer(addr+"0", router)
 	if serverCert == "" || serverKey == "" {
@@ -243,7 +250,7 @@ func main() {
 
 	tlsAddr := fmt.Sprintf("%s:%s", bindAddress, bindPort)
 	pxeAddr := tlsAddr
-	// addr := fmt.Sprintf("%s:%s", bindAddress, bindPort)
+
 	client, err := datastore.NewClient(ctx, projectID)
 	rtx.Must(err, "Failed to create new datastore client")
 
@@ -254,14 +261,9 @@ func main() {
 		AllowForwardedRequests: allowForwardedRequests,
 	}
 
-	go func() {
-		mux := setupMetricsHandler(dsCfg)
-		log.Fatal(http.ListenAndServe(":9090", mux))
-	}()
-
+	startMetricsServerAsync(dsCfg)
 	router := newRouter(env)
 	if service := os.Getenv("GAE_SERVICE"); service != "" {
-		// Assume we are running in AppEngine.
 		startAppEngineServerAsync(pxeAddr, router)
 	} else {
 		startTLSServerAsync(tlsAddr, router, publicHostname)

@@ -76,6 +76,9 @@ var (
 	// bindPort may be set using the PORT environment variable.
 	bindPort = "8080"
 
+	// tlsPort may not be overridden.
+	tlsPort = "443"
+
 	// allowForwardedRequests controls how the ePoxy server evaluates and applies
 	// the Host IP whitelist to incoming requests.
 	// DEPRECATED.
@@ -248,8 +251,8 @@ func main() {
 		log.Fatalf("Environment variable PUBLIC_HOSTNAME must specify a public service name.")
 	}
 
-	tlsAddr := fmt.Sprintf("%s:%s", bindAddress, bindPort)
-	pxeAddr := tlsAddr
+	tlsAddr := fmt.Sprintf("%s:%s", bindAddress, tlsPort)
+	pxeAddr := fmt.Sprintf("%s:%s", bindAddress, bindPort)
 
 	client, err := datastore.NewClient(ctx, projectID)
 	rtx.Must(err, "Failed to create new datastore client")

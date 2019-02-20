@@ -29,7 +29,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/kr/pretty"
 	"github.com/m-lab/epoxy/extension"
 	"github.com/m-lab/epoxy/metrics"
 	"github.com/m-lab/epoxy/storage"
@@ -384,22 +383,22 @@ func newStorageReverseProxy(storagePrefixURL string) *httputil.ReverseProxy {
 		req.Host = target.Host
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
-		req.URL.Path = target.Path + "/" + req.URL.Path
-		req.URL.RawQuery = "" // Reject any given query parameters.
+		req.URL.Path = target.Path + req.URL.Path // Unconditionally concatenate paths.
+		req.URL.RawQuery = ""                     // Reject any given query parameters.
 
 		if _, ok := req.Header["User-Agent"]; !ok {
 			// Explicitly disable User-Agent so it's not set to default value.
 			req.Header.Set("User-Agent", "")
 		}
-		log.Println("proxy", req.Method, req.URL)
 		log.Println(req.RemoteAddr, req.Method, req.Host, req.Header, req.RequestURI)
-		log.Println(pretty.Sprint(req.URL))
+		log.Println("StorageProxy request:", req.URL)
 	}
 	return &httputil.ReverseProxy{Director: director}
 }
 
-// HandleProxy creates a pass-through proxy for GET requests to GCS.
-func (env *Env) HandleProxy(rw http.ResponseWriter, req *http.Request) {
+// HandleStorageProxy creates a pass-through proxy for GET requests
+// by concatenating the request "path" to the environment's StoragePrefixURL.
+func (env *Env) HandleStorageProxy(rw http.ResponseWriter, req *http.Request) {
 	if env.StoragePrefixURL == "" {
 		// When no storage prefix url is given, then signal that this is unsupported.
 		http.Error(rw, "StoragePrefixURL is not specified", http.StatusNotImplemented)
@@ -410,10 +409,9 @@ func (env *Env) HandleProxy(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Println("orig", req.URL)
+	// Gorilla strips the "/" prefix from paths, so add it back.
 	path := mux.Vars(req)["path"]
-	log.Println("path", path)
-	req.URL.Path = path
+	req.URL.Path = "/" + path
 
 	srv := newStorageReverseProxy(env.StoragePrefixURL)
 	srv.ServeHTTP(rw, req)

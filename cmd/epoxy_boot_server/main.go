@@ -85,8 +85,8 @@ var (
 	serverCert = os.Getenv("IPXE_CERT_FILE")
 	serverKey  = os.Getenv("IPXE_KEY_FILE")
 
-	// storagePrefixURL is the prefix URL for storage proxy requests. If empty, use
-	// a GCS URL constructed using the current GCLOUD_PROJECT.
+	// storagePrefixURL is the prefix URL for storage proxy requests. If empty, the
+	// storage proxy is disabled.
 	storagePrefixURL = os.Getenv("STORAGE_PREFIX_URL")
 )
 

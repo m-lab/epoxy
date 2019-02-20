@@ -58,7 +58,7 @@ type Env struct {
 	AllowForwardedRequests bool
 	// Project is the GCP project name in which the server is running.
 	Project string
-	// StoragePrefixURL is the complete prefix URL for storage proxy requests.
+	// StoragePrefixURL is the target URL prefix for storage proxy requests.
 	StoragePrefixURL string
 }
 
@@ -373,8 +373,9 @@ func (env *Env) HandleExtension(rw http.ResponseWriter, req *http.Request) {
 	srv.ServeHTTP(rw, req)
 }
 
-// newStorageReverseProxy allows GET requests to the epoxy GCS bucket in the
-// current project.
+// newStorageReverseProxy creates an httputil.ReverseProxy that forwards requests
+// to the given target URL prefix. Client request paths are concatenated onto the
+// target prefix URL path.
 func newStorageReverseProxy(storagePrefixURL string) *httputil.ReverseProxy {
 	target, err := url.Parse(storagePrefixURL)
 	rtx.Must(err, "Failed to parse static GCS URL")
@@ -387,7 +388,8 @@ func newStorageReverseProxy(storagePrefixURL string) *httputil.ReverseProxy {
 		req.URL.RawQuery = ""                     // Reject any given query parameters.
 
 		if _, ok := req.Header["User-Agent"]; !ok {
-			// Explicitly disable User-Agent so it's not set to default value.
+			// User did not provide User-Agent, so explicitly disable it so our request
+			// does not set it to the default value.
 			req.Header.Set("User-Agent", "")
 		}
 		log.Println(req.RemoteAddr, req.Method, req.Host, req.Header, req.RequestURI)

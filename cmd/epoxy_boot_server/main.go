@@ -84,6 +84,10 @@ var (
 	// serverCert and serverKey are the filenames for the iPXE server certificate.
 	serverCert = os.Getenv("IPXE_CERT_FILE")
 	serverKey  = os.Getenv("IPXE_KEY_FILE")
+
+	// storagePrefixURL is the prefix URL for storage proxy requests. If empty, use
+	// a GCS URL constructed using the current GCLOUD_PROJECT.
+	storagePrefixURL = os.Getenv("STORAGE_PREFIX_URL")
 )
 
 const (
@@ -159,6 +163,9 @@ func newRouter(env *handler.Env) *mux.Router {
 	addRoute(router, "POST", "/v1/boot/{hostname}/{sessionID}/extension/{operation}",
 		http.HandlerFunc(env.HandleExtension))
 
+	// Add proxy for accessing storage, such as GCS.
+	addRoute(router, "GET", "/v1/storage/{path:.*}",
+		http.HandlerFunc(env.HandleProxy))
 	return router
 }
 
@@ -264,6 +271,8 @@ func main() {
 		Config:                 dsCfg,
 		ServerAddr:             publicHostname,
 		AllowForwardedRequests: allowForwardedRequests,
+		Project:                projectID,
+		StoragePrefixURL:       storagePrefixURL,
 	}
 
 	startMetricsServerAsync(dsCfg)

@@ -29,10 +29,12 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/kr/pretty"
 	"github.com/m-lab/epoxy/extension"
 	"github.com/m-lab/epoxy/metrics"
 	"github.com/m-lab/epoxy/storage"
 	"github.com/m-lab/epoxy/template"
+	"github.com/m-lab/go/rtx"
 )
 
 // Config provides access to Host records.
@@ -55,6 +57,10 @@ type Env struct {
 	// then the ePoxy server substitutes the value in the "X-Forwarded-For" request
 	// header for the request "remote address".
 	AllowForwardedRequests bool
+	// Project is the GCP project name in which the server is running.
+	Project string
+	// StoragePrefixURL is the complete prefix URL for storage proxy requests.
+	StoragePrefixURL string
 }
 
 var (
@@ -365,5 +371,50 @@ func (env *Env) HandleExtension(rw http.ResponseWriter, req *http.Request) {
 	//  * histogram of request latencies,
 	//  * counts status codes,
 	srv := newReverseProxy(extURL, webreq.Encode())
+	srv.ServeHTTP(rw, req)
+}
+
+// newStorageReverseProxy allows GET requests to the epoxy GCS bucket in the
+// current project.
+func newStorageReverseProxy(storagePrefixURL string) *httputil.ReverseProxy {
+	target, err := url.Parse(storagePrefixURL)
+	rtx.Must(err, "Failed to parse static GCS URL")
+
+	director := func(req *http.Request) {
+		req.Host = target.Host
+		req.URL.Scheme = target.Scheme
+		req.URL.Host = target.Host
+		req.URL.Path = target.Path + "/" + req.URL.Path
+		req.URL.RawQuery = "" // Reject any given query parameters.
+
+		if _, ok := req.Header["User-Agent"]; !ok {
+			// Explicitly disable User-Agent so it's not set to default value.
+			req.Header.Set("User-Agent", "")
+		}
+		log.Println("proxy", req.Method, req.URL)
+		log.Println(req.RemoteAddr, req.Method, req.Host, req.Header, req.RequestURI)
+		log.Println(pretty.Sprint(req.URL))
+	}
+	return &httputil.ReverseProxy{Director: director}
+}
+
+// HandleProxy creates a pass-through proxy for GET requests to GCS.
+func (env *Env) HandleProxy(rw http.ResponseWriter, req *http.Request) {
+	if env.StoragePrefixURL == "" {
+		// When no storage prefix url is given, then signal that this is unsupported.
+		http.Error(rw, "StoragePrefixURL is not specified", http.StatusNotImplemented)
+		return
+	}
+	if req.Method != http.MethodGet {
+		http.Error(rw, "Wrong HTTP method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	log.Println("orig", req.URL)
+	path := mux.Vars(req)["path"]
+	log.Println("path", path)
+	req.URL.Path = path
+
+	srv := newStorageReverseProxy(env.StoragePrefixURL)
 	srv.ServeHTTP(rw, req)
 }

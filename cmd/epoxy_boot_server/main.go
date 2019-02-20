@@ -165,7 +165,7 @@ func newRouter(env *handler.Env) *mux.Router {
 
 	// Add proxy for accessing storage, such as GCS.
 	addRoute(router, "GET", "/v1/storage/{path:.*}",
-		http.HandlerFunc(env.HandleProxy))
+		http.HandlerFunc(env.HandleStorageProxy))
 	return router
 }
 

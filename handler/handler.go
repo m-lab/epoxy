@@ -33,6 +33,7 @@ import (
 	"github.com/m-lab/epoxy/metrics"
 	"github.com/m-lab/epoxy/storage"
 	"github.com/m-lab/epoxy/template"
+	"github.com/m-lab/go/rtx"
 )
 
 // Config provides access to Host records.
@@ -55,6 +56,10 @@ type Env struct {
 	// then the ePoxy server substitutes the value in the "X-Forwarded-For" request
 	// header for the request "remote address".
 	AllowForwardedRequests bool
+	// Project is the GCP project name in which the server is running.
+	Project string
+	// StoragePrefixURL is the target URL prefix for storage proxy requests.
+	StoragePrefixURL string
 }
 
 var (
@@ -365,5 +370,51 @@ func (env *Env) HandleExtension(rw http.ResponseWriter, req *http.Request) {
 	//  * histogram of request latencies,
 	//  * counts status codes,
 	srv := newReverseProxy(extURL, webreq.Encode())
+	srv.ServeHTTP(rw, req)
+}
+
+// newStorageReverseProxy creates an httputil.ReverseProxy that forwards requests
+// to the given target URL prefix. Client request paths are concatenated onto the
+// target prefix URL path.
+func newStorageReverseProxy(storagePrefixURL string) *httputil.ReverseProxy {
+	target, err := url.Parse(storagePrefixURL)
+	rtx.Must(err, "Failed to parse static GCS URL")
+
+	director := func(req *http.Request) {
+		req.Host = target.Host
+		req.URL.Scheme = target.Scheme
+		req.URL.Host = target.Host
+		req.URL.Path = target.Path + req.URL.Path // Unconditionally concatenate paths.
+		req.URL.RawQuery = ""                     // Reject any given query parameters.
+
+		if _, ok := req.Header["User-Agent"]; !ok {
+			// User did not provide User-Agent, so explicitly disable it so our request
+			// does not set it to the default value.
+			req.Header.Set("User-Agent", "")
+		}
+		log.Println(req.RemoteAddr, req.Method, req.Host, req.Header, req.RequestURI)
+		log.Println("StorageProxy request:", req.URL)
+	}
+	return &httputil.ReverseProxy{Director: director}
+}
+
+// HandleStorageProxy creates a pass-through proxy for GET requests
+// by concatenating the request "path" to the environment's StoragePrefixURL.
+func (env *Env) HandleStorageProxy(rw http.ResponseWriter, req *http.Request) {
+	if env.StoragePrefixURL == "" {
+		// When no storage prefix url is given, then signal that this is unsupported.
+		http.Error(rw, "StoragePrefixURL is not specified", http.StatusNotImplemented)
+		return
+	}
+	if req.Method != http.MethodGet {
+		http.Error(rw, "Wrong HTTP method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Gorilla strips the "/" prefix from paths, so add it back.
+	path := mux.Vars(req)["path"]
+	req.URL.Path = "/" + path
+
+	srv := newStorageReverseProxy(env.StoragePrefixURL)
 	srv.ServeHTTP(rw, req)
 }

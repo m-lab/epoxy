@@ -69,7 +69,11 @@ func TestGenerateStage1IPXE(t *testing.T) {
 			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
 		},
 	}
-	env := &Env{fakeConfig{host: h}, "example.com:4321", true}
+	env := &Env{
+		Config:                 fakeConfig{host: h},
+		ServerAddr:             "example.com:4321",
+		AllowForwardedRequests: true,
+	}
 	router := mux.NewRouter()
 	router.Methods("POST").
 		Path("/v1/boot/{hostname}/stage1.ipxe").
@@ -196,8 +200,11 @@ func TestEnv_GenerateStage1IPXE(t *testing.T) {
 			req := httptest.NewRequest("POST", "/v1/boot/"+h.Name+"/stage1.ipxe", nil)
 			req.Header.Set("X-Forwarded-For", tt.from)
 			rec := httptest.NewRecorder()
-
-			env := &Env{tt.config, "example.com:4321", true}
+			env := &Env{
+				Config:                 tt.config,
+				ServerAddr:             "example.com:4321",
+				AllowForwardedRequests: true,
+			}
 			req = mux.SetURLVars(req, vars)
 			env.GenerateStage1IPXE(rec, req)
 
@@ -256,7 +263,11 @@ func TestEnv_GenerateJSONConfig(t *testing.T) {
 			req.Header.Set("X-Forwarded-For", tt.from)
 			rec := httptest.NewRecorder()
 
-			env := &Env{tt.config, "server.com:4321", true}
+			env := &Env{
+				Config:                 tt.config,
+				ServerAddr:             "example.com:4321",
+				AllowForwardedRequests: true,
+			}
 			req = mux.SetURLVars(req, vars)
 			env.GenerateJSONConfig(rec, req)
 
@@ -334,8 +345,11 @@ func TestEnv_ReceiveReport(t *testing.T) {
 			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 			req.Header.Set("X-Forwarded-For", tt.from)
 			rec := httptest.NewRecorder()
-
-			env := &Env{fakeConfig{host: h, failOnLoad: false, failOnSave: false}, "server.com:4321", true}
+			env := &Env{
+				Config:                 fakeConfig{host: h, failOnLoad: false, failOnSave: false},
+				ServerAddr:             "example.com:4321",
+				AllowForwardedRequests: true,
+			}
 			req = mux.SetURLVars(req, vars)
 			env.ReceiveReport(rec, req)
 
@@ -451,7 +465,11 @@ func TestEnv_HandleExtension(t *testing.T) {
 			req := httptest.NewRequest("POST", extURL, nil)
 			req.Header.Set("X-Forwarded-For", tt.from)
 			rec := httptest.NewRecorder()
-			env := &Env{fakeConfig{host: h, failOnLoad: tt.failOnLoad}, "server.com:4321", true}
+			env := &Env{
+				Config:                 fakeConfig{host: h, failOnLoad: tt.failOnLoad},
+				ServerAddr:             "example.com:4321",
+				AllowForwardedRequests: true,
+			}
 			req = mux.SetURLVars(req, vars)
 			// Setup a fake extension server to handle the Request.
 			ts := httptest.NewServer(
@@ -547,13 +565,96 @@ func TestEnv_GenerateStage1JSON(t *testing.T) {
 			req := httptest.NewRequest("POST", "/v1/boot/"+h.Name+"/stage1.ipxe", nil)
 			req.Header.Set("X-Forwarded-For", tt.from)
 			rec := httptest.NewRecorder()
-
-			env := &Env{tt.config, "example.com:4321", true}
+			env := &Env{
+				Config:                 tt.config,
+				ServerAddr:             "example.com:4321",
+				AllowForwardedRequests: true,
+			}
 			req = mux.SetURLVars(req, vars)
 			env.GenerateStage1JSON(rec, req)
 
 			if rec.Code != tt.status {
 				t.Errorf("GenerateStage1JSON() wrong HTTP status: got %v; want %v", rec.Code, tt.status)
+			}
+		})
+	}
+}
+
+func TestEnv_HandleStorageProxy(t *testing.T) {
+	tests := []struct {
+		name           string
+		storagePath    string
+		method         string
+		expectedStatus int
+		expectedResult string
+		disableStorage bool
+	}{
+		{
+			name:           "success",
+			storagePath:    "/stage1/vmlinuz",
+			method:         "GET",
+			expectedStatus: http.StatusOK,
+			expectedResult: "ok",
+		},
+		{
+			name:           "failure-not-implemented",
+			storagePath:    "/stage1/vmlinuz",
+			method:         "GET",
+			expectedStatus: http.StatusNotImplemented,
+			disableStorage: true,
+		},
+		{
+			name:           "failure-method-not-allowed",
+			storagePath:    "/stage1/vmlinuz",
+			method:         "POST",
+			expectedStatus: http.StatusMethodNotAllowed,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			// Setup a fake storage server to handle the proxy request.
+			ts := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.URL.Path != tt.storagePath {
+						t.Errorf("Requeted and expected path does not match; got %q, want %q",
+							r.URL.Path, tt.storagePath)
+					}
+					w.WriteHeader(tt.expectedStatus)
+					w.Write([]byte(tt.expectedResult))
+				}))
+			defer ts.Close()
+
+			// Create a synthetic request with an original request URL to example.com.
+			req := httptest.NewRequest(
+				tt.method, "https://epoxy-boot-api.mlab-sandbox.mlab.net/v1/storage"+tt.storagePath, nil)
+			rec := httptest.NewRecorder()
+
+			// These variables are normally created by the gorilla request handler.
+			// An original request to:
+			//   https://epoxy-boot-api.mlab-sandbox.mlab.net/v1/storage/stage1/vmlinuz
+			// would extract the "path" after /v1/storage, i.e. "stage1/vmlinuz"
+			vars := map[string]string{"path": tt.storagePath[1:]}
+			req = mux.SetURLVars(req, vars)
+
+			// The env configuration is normally created by the main server.
+			// StoragePrefixURL is the only setting needed by HandleStorageProxy.
+			env := &Env{}
+			if !tt.disableStorage {
+				// Direct the proxy at our test server.
+				env.StoragePrefixURL = ts.URL
+			}
+
+			env.HandleStorageProxy(rec, req)
+
+			if tt.expectedStatus != rec.Code {
+				t.Errorf("HandleStorageProxy() wrong HTTP status: got %v; want %v",
+					rec.Code, tt.expectedStatus)
+			}
+			// Verify that the request and response actually came from the test server.
+			if tt.expectedResult != "" && tt.expectedResult != rec.Body.String() {
+				t.Errorf("HandleStorageProxy() wrong result forwarded: got %v\n; want %v\n",
+					rec.Body.String(), tt.expectedResult)
 			}
 		})
 	}

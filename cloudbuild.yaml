@@ -1,0 +1,36 @@
+# Timeout for complete build. Default is 10m.
+timeout: 1800s
+
+steps:
+# Fetch all submodules.
+#- name: gcr.io/cloud-builders/git
+#  args: [
+#    'submodule', 'update', '--init', '--recursive'
+#  ]
+
+# Create the image builder for later steps.
+- name: gcr.io/cloud-builders/docker
+  args: [
+    'build', '-t', 'gcr.io/$PROJECT_ID/epoxy_boot_server:$BUILD_ID', '.'
+  ]
+# Make the new container available immediately.
+- name: gcr.io/cloud-builders/docker
+  args: [
+    'push', 'gcr.io/$PROJECT_ID/epoxy_boot_server:$BUILD_ID'
+  ]
+
+# Deploy to GCE.
+- name: gcr.io/cloud-builders/gcloud
+  entrypoint: bash
+  args:
+   - '/workspace/deploy_gce.sh'
+  env:
+   - 'PROJECT=$PROJECT_ID'
+   - 'CONTAINER=gcr.io/$PROJECT_ID/epoxy_boot_server:$BUILD_ID'
+   - 'IP_mlab_sandbox=35.190.184.60'
+   - 'IP_mlab_staging='
+   - 'IP_mlab_oti='
+   - 'ZONE_mlab_sandbox=us-east1-c'
+   - 'ZONE_mlab_staging=us-central1-b'
+   - 'ZONE_mlab_oti=us-east1-c'
+

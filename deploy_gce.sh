@@ -2,14 +2,19 @@
 
 set -ex
 
-ZONE_mlab_sandbox=us-east1-d
-IP_mlab_sandbox=35.190.184.60
+# ZONE_mlab_sandbox=us-east1-d
+# IP_mlab_sandbox=35.190.184.60
 
 ip_ref=IP_${PROJECT//-/_}
 zone_ref=ZONE_${PROJECT//-/_}
 
 ZONE=${!zone_ref}
 IP=${!ip_ref}
+
+if [[ -z "${ZONE}" || -z "${IP}" ]] ; then
+    echo "ERROR: Failed to lookup GCP ZONE ('$ZONE') or public IP ('$IP') for project '$PROJECT'"
+    exit 1
+fi
 
 # Lookup the instance (if any) currently using the static IP address for ePoxy.
 gce_url=$( gcloud compute addresses describe --project "${PROJECT}" \
@@ -22,13 +27,14 @@ CERTDIR=/home/epoxy
 cat <<EOF > startup.sh
 #!/bin/bash
 set -x
-mkdir ${CERTDIR}
+mkdir "${CERTDIR}"
 # Copy certificates from GCS.
+# Retry because docker fails to contact gcr.io sometimes.
 until docker run --tty --volume "${CERTDIR}:${CERTDIR}" \
     gcr.io/cloud-builders/gsutil \
 	cp gs://epoxy-${PROJECT}-private/server-certs.pem \
 	   gs://epoxy-${PROJECT}-private/server-key.pem \
-	   ${CERTDIR} ; do
+	   "${CERTDIR}"; do
   sleep 5
 done
 EOF
@@ -49,7 +55,7 @@ gcloud compute instances create-with-container "${UPDATED_INSTANCE}" \
 	--scopes default,datastore \
     --metadata-from-file "startup-script=startup.sh" \
     --network-interface network=mlab-platform-network,subnet=epoxy \
-    --container-image "soltesz/epoxy_boot_server" \
+    --container-image "${CONTAINER}" \
     --container-mount-host-path host-path=/home/epoxy,mount-path=/certs \
     --container-env-file config.env
 

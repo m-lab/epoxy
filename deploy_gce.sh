@@ -2,20 +2,22 @@
 
 set -ex
 
-# ZONE_mlab_sandbox=us-east1-d
-# IP_mlab_sandbox=35.190.184.60
-
-ip_ref=IP_${PROJECT//-/_}
 zone_ref=ZONE_${PROJECT//-/_}
-
 ZONE=${!zone_ref}
-IP=${!ip_ref}
 
-if [[ -z "${ZONE}" || -z "${IP}" ]] ; then
-    echo "ERROR: Failed to lookup GCP ZONE ('$ZONE') or public IP ('$IP') for project '$PROJECT'"
+if [[ -z "${ZONE}" ]] ; then
+    echo "ERROR: Failed to lookup GCP ZONE ('$ZONE') for project '$PROJECT'"
     exit 1
 fi
 
+# Lookup address.
+IP=$( gcloud compute addresses describe --project "${PROJECT}" \
+        --format "value(address)" --region "${ZONE%-*}" epoxy-boot-api )
+if [[ -z "${IP}" ]] ; then
+    echo "ERROR: Failed to find static IP in region ${ZONE%-*}"
+    echo "ERROR: Run the m-lab/epoxy/setup_epoxy_dns.sh to allocate one."
+    exit 1
+fi
 # Lookup the instance (if any) currently using the static IP address for ePoxy.
 gce_url=$( gcloud compute addresses describe --project "${PROJECT}" \
 		     --format "value(users)" --region "${ZONE%-*}" epoxy-boot-api )

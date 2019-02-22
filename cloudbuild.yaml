@@ -30,6 +30,7 @@ steps:
    - 'IP_mlab_sandbox=35.190.184.60'
    - 'IP_mlab_staging='
    - 'IP_mlab_oti='
+   # NOTE: Changing zones will require manual intervention.
    - 'ZONE_mlab_sandbox=us-east1-c'
    - 'ZONE_mlab_staging=us-central1-b'
    - 'ZONE_mlab_oti=us-east1-c'

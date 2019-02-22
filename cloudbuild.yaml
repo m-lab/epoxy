@@ -2,7 +2,7 @@
 timeout: 1800s
 
 steps:
-# Create the image builder for later steps.
+# Create the image for later steps.
 - name: gcr.io/cloud-builders/docker
   args: [
     'build', '-t', 'gcr.io/$PROJECT_ID/epoxy_boot_server:$BUILD_ID', '.'
@@ -12,12 +12,11 @@ steps:
   args: [
     'push', 'gcr.io/$PROJECT_ID/epoxy_boot_server:$BUILD_ID'
   ]
-
 # Deploy to GCE.
 - name: gcr.io/cloud-builders/gcloud
   entrypoint: bash
   args:
-   - '/workspace/deploy_gce.sh'
+   - '/workspace/deploy_epoxy_container.sh'
   env:
    - 'PROJECT=$PROJECT_ID'
    - 'CONTAINER=gcr.io/$PROJECT_ID/epoxy_boot_server:$BUILD_ID'

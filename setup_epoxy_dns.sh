@@ -10,8 +10,13 @@
 # EXAMPLE USAGE:
 #   PROJECT=mlab-sandbox ZONE=us-east1-c ./setup_epoxy_dns.sh
 
-set -xe
+if [[ -z "${PROJECT}" || -z "${ZONE}" ]] ; then
+    echo "ERROR: Both PROJECT= and ZONE= must be set in the environment"
+    echo "ERROR: e.g. PROJECT=mlab-sandbox ZONE=us-east1-c"
+    exit 1
+fi
 
+set -xe
 IP=$( gcloud compute addresses describe --project "${PROJECT}" \
         --format "value(address)" --region "${ZONE%-*}" epoxy-boot-api || : )
 if [[ -z "${IP}" ]] ; then

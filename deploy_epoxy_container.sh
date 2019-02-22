@@ -1,7 +1,9 @@
 #!/bin/bash
 #
 # deploy_epoxy_container.sh creates a GCE VM, which runs a startup script, and
-# starts a container image for the epoxy_boot_server.
+# starts a container image for the epoxy_boot_server. Because the epoxy boot api
+# uses a static IP, that IP is unassigned from the current VM and reassigned to
+# the new VM, once the new VM appears to be working.
 #
 # deploy_epoxy_container.sh depends on three environment variables for correct
 # operation.

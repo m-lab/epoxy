@@ -5,7 +5,8 @@
 # current DNS record for epoxy-boot-api.<project>.measurementlab.net and
 # updates it if needed.
 #
-# setup_epoxy_dns.sh should be safe to run multiple times.
+# setup_epoxy_dns.sh should be safe to run multiple times. Typically, this is
+# only needed once per project.
 #
 # EXAMPLE USAGE:
 #   PROJECT=mlab-sandbox ZONE=us-east1-c ./setup_epoxy_dns.sh

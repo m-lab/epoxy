@@ -1,11 +1,29 @@
 #!/bin/bash
+#
+# deploy_epoxy_container.sh creates a GCE VM, which runs a startup script, and
+# starts a container image for the epoxy_boot_server.
+#
+# deploy_epoxy_container.sh depends on three environment variables for correct
+# operation.
+#
+#  PROJECT - specifies the GCP project name to create the VM, e.g. mlab-sandbox.
+#  CONTAINER - specifies the docker container image URL, e.g.
+#                gcr.io/mlab-sandbox/epoxy_boot_server
+#  ZONE_<project> - specifies the GCP VM zone, e.g. ZONE_mlab_sandbox=us-east1-c
+#
+# Example usage:
+#
+#   PROJECT=mlab-sandbox \
+#   CONTAINER=gcr.io/mlab-sandbox/epoxy_boot_server:$BUILD_ID \
+#   ZONE_mlab_sandbox=us-east1-c \
+#     ./deploy_epoxy_container.sh
 
 set -ex
 
 zone_ref=ZONE_${PROJECT//-/_}
 ZONE=${!zone_ref}
 
-if [[ -z "${ZONE}" ]] ; then
+if [[ -z "${PROJECT}" || -z "${CONTAINER}" || -z "${ZONE}" ]] ; then
     echo "ERROR: Failed to lookup GCP ZONE ('$ZONE') for project '$PROJECT'"
     exit 1
 fi
@@ -33,10 +51,10 @@ mkdir "${CERTDIR}"
 # Copy certificates from GCS.
 # Retry because docker fails to contact gcr.io sometimes.
 until docker run --tty --volume "${CERTDIR}:${CERTDIR}" \
-    gcr.io/cloud-builders/gsutil \
-	cp gs://epoxy-${PROJECT}-private/server-certs.pem \
-	   gs://epoxy-${PROJECT}-private/server-key.pem \
-	   "${CERTDIR}"; do
+  gcr.io/cloud-builders/gsutil \
+  cp gs://epoxy-${PROJECT}-private/server-certs.pem \
+      gs://epoxy-${PROJECT}-private/server-key.pem \
+      "${CERTDIR}"; do
   sleep 5
 done
 EOF

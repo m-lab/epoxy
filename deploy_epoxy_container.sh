@@ -26,7 +26,11 @@ zone_ref=ZONE_${PROJECT//-/_}
 ZONE=${!zone_ref}
 
 if [[ -z "${PROJECT}" || -z "${CONTAINER}" || -z "${ZONE}" ]]; then
-  echo "ERROR: Failed to lookup GCP ZONE ('$ZONE') for project '$PROJECT'"
+  echo "ERROR: PROJECT, CONTAINER, and ZONE must be defined in environment."
+  echo "ERROR: Current values are:"
+  echo "  PROJECT='${PROJECT}'"
+  echo "  CONTAINER='${CONTAINER}'"
+  echo "  ZONE='${ZONE}'"
   exit 1
 fi
 

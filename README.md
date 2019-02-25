@@ -1,15 +1,39 @@
 # ePoxy
+
 A system for safe boot management over the Internet, based on iPXE.
 
-# Building
+## Building
 
 To build the ePoxy boot server:
 
     go get github.com/m-lab/epoxy/cmd/epoxy_boot_server
 
-# Testing
+## Deployment
 
-## Testing Server
+The ePoxy server is designed to run from within a docker container. The M-Lab
+deployment targets a stand-alone GCE VM. The cloudbuild.yaml configuration
+embeds static zones for specific regional deployments for each GCP project.
+
+Before deploying to a new Project complete the following steps in advance:
+
+* Allocate static IP address and register DNS
+
+      PROJECT=mlab-sandbox ZONE=us-east1-c setup_epoxy_dns.sh
+
+* Allocate server certificte and key
+
+      TODO: add steps to allocate server certs.
+
+* Create GCS bucket `gs://epoxy-${PROJECT}-private` and copy server certificate
+  & key.
+
+      gsutil mb -p mlab-sandbox gs://epoxy-mlab-sandbox-private
+      gsutil cp server-certs.pem server-key.pem gs://epoxy-mlab-sandbox-private
+
+
+## Testing
+
+### Testing Server
 
 The datastore emulator depends on the [Google Cloud
 SDK](https://cloud.google.com/sdk/downloads). After installing `gcloud`,
@@ -38,7 +62,7 @@ Start the epoxy server:
 The ePoxy server is now connected to the local datastore emulator, and can
 serve client requests.
 
-## Testing Client
+### Testing Client
 
 After starting the datastore emuulator and a local epoxy boot server, you can
 simulate a client request using `curl`.

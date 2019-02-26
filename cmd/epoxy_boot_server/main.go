@@ -251,6 +251,9 @@ var (
 	// Create a unified context and a cancel method for main(). Allows main to
 	// block until global context is canceled by integration tests.
 	ctx, cancelCtx = context.WithCancel(context.Background())
+
+	// datastoreNewClient allows unit testing without gcloud credentials.
+	datastoreNewClient = datastore.NewClient
 )
 
 func main() {
@@ -263,7 +266,7 @@ func main() {
 		log.Fatalf("Environment variable PUBLIC_HOSTNAME must specify a public service name.")
 	}
 
-	client, err := datastore.NewClient(ctx, projectID)
+	client, err := datastoreNewClient(ctx, projectID)
 	rtx.Must(err, "Failed to create new datastore client")
 
 	dsCfg := storage.NewDatastoreConfig(client)

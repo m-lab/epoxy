@@ -28,6 +28,7 @@ import (
 	"cloud.google.com/go/datastore"
 	"github.com/m-lab/epoxy/storage"
 	"github.com/prometheus/prometheus/util/promlint"
+	"google.golang.org/api/option"
 )
 
 func TestCheckHealth(t *testing.T) {
@@ -100,6 +101,11 @@ func Test_main(t *testing.T) {
 	publicHostname = "fake.public.hostname.com"
 	bindAddress = "localhost"
 	bindPort = "8800"
+	datastoreNewClient = func(
+		ctx context.Context, projectID string,
+		opts ...option.ClientOption) (*datastore.Client, error) {
+		return &datastore.Client{}, nil
+	}
 	os.Setenv("GAE_SERVICE", "fake") // Simulate deployment in AE.
 	go main()
 	time.Sleep(1 * time.Second)

@@ -4,9 +4,10 @@ FROM golang:1.11 as build
 # of downloading from GitHub. All other package dependencies will be downloaded
 # from HEAD.
 ADD . /go/src/github.com/m-lab/epoxy
+ENV CGO_ENABLED 0
 RUN go get -t -v github.com/m-lab/epoxy/...
 RUN go test -v github.com/m-lab/epoxy/...
-RUN CGO_ENABLED=0 go get -t -v github.com/m-lab/epoxy/cmd/epoxy_boot_server
+RUN go get github.com/m-lab/epoxy/cmd/epoxy_boot_server
 
 # Now copy the built binary into a minimal base image.
 FROM alpine

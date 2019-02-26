@@ -73,6 +73,19 @@ STORAGE_PREFIX_URL=https://storage.googleapis.com/epoxy-${PROJECT}
 GCLOUD_PROJECT=${PROJECT}
 EOF
 
+CURRENT_FIREWALL=$(gcloud compute firewall-rules list --project "${PROJECT}" \
+  --filter "name=allow-epoxy-ports" --format "value(name)")
+if [[ -z "${CURRENT_FIREWALL}" ]]; then
+  # Create a new firewall to open access for all epoxy boot server ports.
+  gcloud compute firewall-rules create "allow-epoxy-ports" \
+    --project "${PROJECT}" \
+    --network "mlab-platform-network" \
+    --action "allow" \
+    --rules "tcp:443,tcp:4430,tcp:9000" \
+    --target-tags "allow-epoxy-ports" \
+    --source-ranges "0.0.0.0/0" || :
+fi
+
 # Create new VM without public IP.
 gcloud compute instances create-with-container "${UPDATED_INSTANCE}" \
   --project "${PROJECT}" \

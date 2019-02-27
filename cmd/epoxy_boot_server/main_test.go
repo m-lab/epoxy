@@ -15,7 +15,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -25,9 +24,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m-lab/go/prometheusx"
+
 	"cloud.google.com/go/datastore"
 	"github.com/m-lab/epoxy/storage"
-	"github.com/prometheus/prometheus/util/promlint"
 	"google.golang.org/api/option"
 )
 
@@ -75,25 +75,8 @@ func Test_setupMetricsHandler(t *testing.T) {
 			},
 		},
 	}
-	mux := setupMetricsHandler(dsCfg)
-	srv := httptest.NewServer(mux)
-
-	metricReader, err := http.Get(srv.URL + "/metrics")
-	if err != nil || metricReader == nil {
-		t.Errorf("Could not GET metrics: %v", err)
-	}
-	metricBytes, err := ioutil.ReadAll(metricReader.Body)
-	if err != nil {
-		t.Errorf("Could not read metrics: %v", err)
-	}
-	metricsLinter := promlint.New(bytes.NewBuffer(metricBytes))
-	problems, err := metricsLinter.Lint()
-	if err != nil {
-		t.Errorf("Could not lint metrics: %v", err)
-	}
-	for _, p := range problems {
-		t.Errorf("Bad metric %v: %v", p.Metric, p.Text)
-	}
+	setupMetrics(dsCfg)
+	prometheusx.LintMetrics(t)
 }
 
 func Test_main(t *testing.T) {

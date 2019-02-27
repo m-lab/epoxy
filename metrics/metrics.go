@@ -21,11 +21,12 @@ import (
 
 	"github.com/m-lab/epoxy/storage"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
 	// Stage1Total counts the number of host boots.
-	Stage1Total = prometheus.NewCounterVec(
+	Stage1Total = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "epoxy_stage1_total",
 			Help: "Total number of boots per machine.",
@@ -35,7 +36,7 @@ var (
 	)
 
 	// RequestDuration profiles request latency.
-	RequestDuration = prometheus.NewHistogramVec(
+	RequestDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name: "epoxy_request_duration_seconds",
 			Help: "A histogram of request latencies.",
@@ -44,11 +45,6 @@ var (
 		[]string{"code"},
 	)
 )
-
-func init() {
-	prometheus.MustRegister(Stage1Total)
-	prometheus.MustRegister(RequestDuration)
-}
 
 // Config provides access to Host records.
 type Config interface {

@@ -41,6 +41,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/m-lab/go/prometheusx"
+
 	"github.com/m-lab/go/httpx"
 
 	"cloud.google.com/go/datastore"
@@ -176,20 +178,13 @@ func checkHealth(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(rw, "ok")
 }
 
-func setupMetricsHandler(dsCfg *storage.DatastoreConfig) *http.ServeMux {
+func setupMetrics(dsCfg *storage.DatastoreConfig) {
 	// Note: we use custom collectors to read directly from datastore rather than
 	// instrumenting http handlers because we want to guarantee that metrics are
 	// always available, even after an appengine server restart. These metrics will
 	// be critical for defining alerts on boot failures.
 	prometheus.Register(metrics.NewCollector("epoxy_last_boot", dsCfg))
 	prometheus.Register(metrics.NewCollector("epoxy_last_success", dsCfg))
-	// Define a custom serve mux for prometheus to listen on a separate port.
-	// We listen on a separate port so we can forward this port on the host VM.
-	// We cannot forward port 8080 because it is used by AppEngine.
-	mux := http.NewServeMux()
-	// Assign the default prometheus handler to the standard exporter path.
-	mux.Handle("/metrics", promhttp.Handler())
-	return mux
 }
 
 func setupLetsEncryptServer(addr string, r *mux.Router, hostname string) *http.Server {
@@ -211,12 +206,8 @@ func setupLetsEncryptServer(addr string, r *mux.Router, hostname string) *http.S
 }
 
 func startMetricsServerAsync(dsCfg *storage.DatastoreConfig) {
-	mux := setupMetricsHandler(dsCfg)
-	s := &http.Server{
-		Addr:    ":9000",
-		Handler: mux,
-	}
-	httpx.ListenAndServeAsync(s)
+	setupMetrics(dsCfg)
+	prometheusx.MustStartPrometheus(":9000")
 }
 
 func startAppEngineServerAsync(addr string, router *mux.Router) {

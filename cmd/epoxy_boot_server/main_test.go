@@ -24,10 +24,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m-lab/go/prometheusx"
-
 	"cloud.google.com/go/datastore"
 	"github.com/m-lab/epoxy/storage"
+	"github.com/m-lab/go/prometheusx/promtest"
 	"google.golang.org/api/option"
 )
 
@@ -76,7 +75,7 @@ func Test_setupMetricsHandler(t *testing.T) {
 		},
 	}
 	setupMetrics(dsCfg)
-	prometheusx.LintMetrics(t)
+	promtest.LintMetrics(t)
 }
 
 func Test_main(t *testing.T) {

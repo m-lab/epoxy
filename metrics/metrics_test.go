@@ -23,9 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m-lab/go/prometheusx"
-
 	"github.com/m-lab/epoxy/storage"
+	"github.com/m-lab/go/prometheusx/promtest"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -99,5 +98,5 @@ func TestMetrics(t *testing.T) {
 	// Lint the normal prometheus metrics.
 	Stage1Total.WithLabelValues("x")
 	RequestDuration.WithLabelValues("x")
-	prometheusx.LintMetrics(t)
+	promtest.LintMetrics(t)
 }

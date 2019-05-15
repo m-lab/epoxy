@@ -46,6 +46,7 @@ import (
 	"github.com/m-lab/go/httpx"
 
 	"cloud.google.com/go/datastore"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/m-lab/epoxy/handler"
 	"github.com/m-lab/epoxy/metrics"
@@ -187,7 +188,7 @@ func setupMetrics(dsCfg *storage.DatastoreConfig) {
 	prometheus.Register(metrics.NewCollector("epoxy_last_success", dsCfg))
 }
 
-func setupLetsEncryptServer(addr string, r *mux.Router, hostname string) *http.Server {
+func setupLetsEncryptServer(addr string, r http.Handler, hostname string) *http.Server {
 	// We will listen on standard TLS port using LetsEncrypt certificates.
 	m := &autocert.Manager{
 		// Certificates are cached to a local directory.
@@ -207,10 +208,11 @@ func setupLetsEncryptServer(addr string, r *mux.Router, hostname string) *http.S
 
 func startMetricsServerAsync(dsCfg *storage.DatastoreConfig) {
 	setupMetrics(dsCfg)
-	prometheusx.MustStartPrometheus(":9000")
+	*prometheusx.ListenAddress = ":9000"
+	prometheusx.MustServeMetrics()
 }
 
-func startAppEngineServerAsync(addr string, router *mux.Router) {
+func startAppEngineServerAsync(addr string, router http.Handler) {
 	// Start the standard PXE server with the default address.
 	ipxeServer := &http.Server{
 		Addr:    addr,
@@ -219,7 +221,7 @@ func startAppEngineServerAsync(addr string, router *mux.Router) {
 	httpx.ListenAndServeAsync(ipxeServer)
 }
 
-func startTLSServerAsync(bindAddr string, router *mux.Router, hostname string) {
+func startTLSServerAsync(bindAddr string, router http.Handler, hostname string) {
 	tlsAddr := fmt.Sprintf("%s:%s", bindAddr, tlsPort)
 	// Allocate and use LetsEncrypt certificates on given port.
 	tlsServer := setupLetsEncryptServer(tlsAddr, router, hostname)
@@ -270,7 +272,7 @@ func main() {
 	}
 
 	startMetricsServerAsync(dsCfg)
-	router := newRouter(env)
+	router := handlers.LoggingHandler(os.Stderr, newRouter(env))
 	if service := os.Getenv("GAE_SERVICE"); service != "" {
 		addr := fmt.Sprintf("%s:%s", bindAddress, bindPort)
 		startAppEngineServerAsync(addr, router)

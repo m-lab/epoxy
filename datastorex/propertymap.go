@@ -10,12 +10,16 @@ import (
 type Map map[string]string
 
 // Load allocates a new map and assignes key/values from each
-// datastore.Property. Every datastore.Property type must be string.
+// datastore.Property. Every datastore.Property type should be string.
+// Non-string types are ignored.
 func (mp *Map) Load(ps []datastore.Property) error {
 	*mp = make(map[string]string)
-	m := *mp
 	for _, p := range ps {
-		m[p.Name] = p.Value.(string)
+		s, ok := p.Value.(string)
+		// Silently skip any types that are not strings.
+		if ok {
+			(*mp)[p.Name] = s
+		}
 	}
 	return nil
 }

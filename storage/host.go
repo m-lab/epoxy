@@ -22,7 +22,13 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"log"
+	"net/url"
+	"strings"
 	"time"
+	"unicode/utf8"
+
+	"github.com/m-lab/epoxy/datastorex"
 )
 
 // These variables provide indirection for the default function implementations.
@@ -32,21 +38,20 @@ var (
 	timeNow  = time.Now
 )
 
-// CollectedInformation stores information received directly from iPXE clients.
-// Field names correspond to iPXE variable names.
-type CollectedInformation struct {
-	Platform         string
-	BuildArch        string
-	Serial           string
-	Asset            string
-	UUID             string
-	Manufacturer     string
-	Product          string
-	Chip             string
-	MAC              string
-	IP               string
-	Version          string
-	PublicSSHHostKey string
+// CollectedInformationWhitelist is a list of allowed keys for client-provided data.
+var CollectedInformationWhitelist = map[string]bool{
+	"platform":            true,
+	"buildarch":           true,
+	"serial":              true,
+	"asset":               true,
+	"uuid":                true,
+	"manufacturer":        true,
+	"product":             true,
+	"chip":                true,
+	"mac":                 true,
+	"ip":                  true,
+	"version":             true,
+	"public_ssh_host_key": true,
 }
 
 // TODO: SessionIDs and Sequence structs should be map[string]string, that
@@ -120,8 +125,8 @@ type Host struct {
 	LastReport time.Time
 	// LastSuccess is the time of the most recent successful report from this host.
 	LastSuccess time.Time
-	// CollectedInformation reported by the host.
-	CollectedInformation CollectedInformation
+	// CollectedInformation reported by the host. CollectedInformation must be non-nil.
+	CollectedInformation datastorex.Map
 }
 
 // String serializes a Host record. All string type Host fields should be UTF8.
@@ -147,6 +152,21 @@ func (h *Host) CurrentSequence() Sequence {
 		return h.Update
 	}
 	return h.Boot
+}
+
+// AddInformation adds values to the Host's CollectedInformation. Only key
+// names in CollectedInformationWhitelist will be added.
+func (h *Host) AddInformation(values url.Values) {
+	for key, values := range values {
+		value := strings.TrimSpace(strings.Join(values, " "))
+		if !utf8.ValidString(value) {
+			log.Printf("Skipping invalid value for: %s CollectedInformation.%s\n", h.Name, key)
+			continue
+		}
+		if CollectedInformationWhitelist[key] && value != "" {
+			h.CollectedInformation[key] = value
+		}
+	}
 }
 
 // randomSessionByteCount is the number of bytes used to generate random session IDs.

@@ -47,18 +47,16 @@ func TestHostString(t *testing.T) {
     "LastReport": "0001-01-01T00:00:00Z",
     "LastSuccess": "0001-01-01T00:00:00Z",
     "CollectedInformation": {
-        "Platform": "",
-        "BuildArch": "",
-        "Serial": "",
-        "Asset": "",
-        "UUID": "",
-        "Manufacturer": "",
-        "Product": "",
-        "Chip": "",
-        "MAC": "",
-        "IP": "",
-        "Version": "",
-        "PublicSSHHostKey": ""
+        "asset": "12345",
+        "chip": "",
+        "ip": "192.168.0.2",
+        "mac": "12:34:56:78:90:ab",
+        "manufacturer": "dell",
+        "platform": "i386",
+        "product": "",
+        "serial": "abcdefg",
+        "uuid": "abcd-efgh-ijkl",
+        "version": "3.4.1234"
     }
 }`
 	lastCreated, err := time.Parse("Jan 2, 2006 at 3:04pm (GMT)", "Jan 2, 2016 at 3:04pm (GMT)")
@@ -84,6 +82,18 @@ func TestHostString(t *testing.T) {
 			ReportID: "13579",
 		},
 		LastSessionCreation: lastCreated,
+		CollectedInformation: map[string]string{
+			"platform":     "i386",
+			"serial":       "abcdefg",
+			"asset":        "12345",
+			"uuid":         "abcd-efgh-ijkl",
+			"manufacturer": "dell",
+			"product":      "",
+			"chip":         "",
+			"mac":          "12:34:56:78:90:ab",
+			"ip":           "192.168.0.2",
+			"version":      "3.4.1234",
+		},
 	}
 	s := h.String()
 

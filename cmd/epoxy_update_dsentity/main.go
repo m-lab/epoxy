@@ -14,7 +14,7 @@ import (
 	"cloud.google.com/go/datastore"
 	"github.com/m-lab/epoxy/datastorex"
 	"github.com/m-lab/epoxy/storage"
-	"src/github.com/m-lab/go/rtx"
+	"github.com/m-lab/go/rtx"
 )
 
 var (

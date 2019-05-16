@@ -24,7 +24,9 @@ import (
 
 const (
 	// entityKind categorizes the Datastore records.
-	entityKind = "ePoxyHosts"
+	entityKind = "Host"
+	// namespace places all epoxy entities in a unique Datastore namespace.
+	namespace = "ePoxy"
 )
 
 // DatastoreConfig contains configuration for accessing Google Cloud Datastore.
@@ -41,6 +43,7 @@ func NewDatastoreConfig(client iface.DatastoreClient) *DatastoreConfig {
 func (c *DatastoreConfig) Load(name string) (*Host, error) {
 	h := &Host{}
 	key := datastore.NameKey(entityKind, name, nil)
+	key.Namespace = namespace
 	if err := c.Client.Get(context.Background(), key, h); err != nil {
 		return nil, err
 	}
@@ -51,6 +54,7 @@ func (c *DatastoreConfig) Load(name string) (*Host, error) {
 // a Host record already exists, then it is overwritten.
 func (c *DatastoreConfig) Save(host *Host) error {
 	key := datastore.NameKey(entityKind, host.Name, nil)
+	key.Namespace = namespace
 	if _, err := c.Client.Put(context.Background(), key, host); err != nil {
 		return err
 	}
@@ -61,7 +65,7 @@ func (c *DatastoreConfig) Save(host *Host) error {
 // TODO(soltesz): support some simple query filtering or subsets.
 func (c *DatastoreConfig) List() ([]*Host, error) {
 	var hosts []*Host
-	q := datastore.NewQuery(entityKind)
+	q := datastore.NewQuery(entityKind).Namespace(namespace)
 	// Discard array of keys returned since we only need the values in hosts.
 	_, err := c.Client.GetAll(context.Background(), q, &hosts)
 	if err != nil {

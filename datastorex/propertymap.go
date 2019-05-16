@@ -5,6 +5,10 @@ import (
 	"cloud.google.com/go/datastore"
 )
 
+// TODO: If we move this package to github.com/m-lab/go, then we should change
+// the Map type to be more general (i.e. map[string]interface{}) or change the
+// type names to be more specific (i.e. StringMap).
+
 // Map implements the PropertyLoadSaver interface and provides a mechanism for
 // using `map[string]string` types in datastore entities.
 type Map map[string]string

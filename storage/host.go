@@ -28,7 +28,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"cloud.google.com/go/datastore"
+	"github.com/m-lab/epoxy/datastorex"
 )
 
 // These variables provide indirection for the default function implementations.
@@ -38,11 +38,8 @@ var (
 	timeNow  = time.Now
 )
 
-// CollectedInformation stores information received directly from iPXE clients.
-// Field names correspond to iPXE variable names.
-type CollectedInformation map[string]string
-
-var collectedInformationWhitelist = map[string]bool{
+// CollectedInformationWhitelist is a list of allowed keys for client-provided data.
+var CollectedInformationWhitelist = map[string]bool{
 	"platform":            true,
 	"buildarch":           true,
 	"serial":              true,
@@ -55,28 +52,6 @@ var collectedInformationWhitelist = map[string]bool{
 	"ip":                  true,
 	"version":             true,
 	"public_ssh_host_key": true,
-}
-
-// Load sets the given properties in the CollectedInformation instance.
-func (x *CollectedInformation) Load(ps []datastore.Property) error {
-	*x = make(map[string]string)
-	m := *x
-	for _, p := range ps {
-		m[p.Name] = p.Value.(string)
-	}
-	return nil
-}
-
-// Save converts the CollectedInformation datastore properties.
-func (x *CollectedInformation) Save() ([]datastore.Property, error) {
-	var d []datastore.Property
-	for k, v := range *x {
-		d = append(d, datastore.Property{
-			Name:  k,
-			Value: v,
-		})
-	}
-	return d, nil
 }
 
 // TODO: SessionIDs and Sequence structs should be map[string]string, that
@@ -150,8 +125,8 @@ type Host struct {
 	LastReport time.Time
 	// LastSuccess is the time of the most recent successful report from this host.
 	LastSuccess time.Time
-	// CollectedInformation reported by the host.
-	CollectedInformation CollectedInformation
+	// CollectedInformation reported by the host. CollectedInformation must be non-nil.
+	CollectedInformation datastorex.Map
 }
 
 // String serializes a Host record. All string type Host fields should be UTF8.
@@ -188,7 +163,7 @@ func (h *Host) AddInformation(values url.Values) {
 			log.Printf("Skipping invalid value for: %s CollectedInformation.%s\n", h.Name, key)
 			continue
 		}
-		if collectedInformationWhitelist[key] && value != "" {
+		if CollectedInformationWhitelist[key] && value != "" {
 			h.CollectedInformation[key] = value
 		}
 	}

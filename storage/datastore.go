@@ -59,10 +59,6 @@ func (c *DatastoreConfig) Save(host *Host) error {
 	}
 	key := datastore.NameKey(entityKind, host.Name, nil)
 	key.Namespace = namespace
-	// if host.CollectedInformation == nil {
-	// 	// A nil PropertyLoadSaver results in a save error.
-	// 	host.CollectedInformation = map[string]string{}
-	// }
 	if _, err := c.Client.Put(context.Background(), key, host); err != nil {
 		return err
 	}

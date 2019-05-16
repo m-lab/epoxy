@@ -53,10 +53,6 @@ func (c *DatastoreConfig) Load(name string) (*Host, error) {
 // Save stores a Host record to Datastore. Host names are globally unique. If
 // a Host record already exists, then it is overwritten.
 func (c *DatastoreConfig) Save(host *Host) error {
-	if host.CollectedInformation == nil {
-		// Guarantee that saved hosts have an empty CollectedInformation map.
-		host.CollectedInformation = map[string]string{}
-	}
 	key := datastore.NameKey(entityKind, host.Name, nil)
 	key.Namespace = namespace
 	if _, err := c.Client.Put(context.Background(), key, host); err != nil {

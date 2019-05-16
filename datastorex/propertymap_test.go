@@ -18,6 +18,11 @@ func TestMap_Load(t *testing.T) {
 			Name:  "c",
 			Value: "d",
 		},
+		{
+			// Should be ignored.
+			Name:  "i",
+			Value: 100,
+		},
 	}
 
 	m := Map{}

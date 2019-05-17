@@ -38,8 +38,9 @@ var (
 	timeNow  = time.Now
 )
 
-// CollectedInformationWhitelist is a list of allowed keys for client-provided data.
-var CollectedInformationWhitelist = map[string]bool{
+// allowedCollectedInformation contains the complete set of keys that a client may
+// provid to be saved in the Host record.
+var allowedCollectedInformation = map[string]bool{
 	"platform":            true,
 	"buildarch":           true,
 	"serial":              true,
@@ -163,7 +164,7 @@ func (h *Host) AddInformation(values url.Values) {
 			log.Printf("Skipping invalid value for: %s CollectedInformation.%s\n", h.Name, key)
 			continue
 		}
-		if CollectedInformationWhitelist[key] && value != "" {
+		if allowedCollectedInformation[key] && value != "" {
 			h.CollectedInformation[key] = value
 		}
 	}

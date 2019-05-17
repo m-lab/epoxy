@@ -3,6 +3,7 @@ package datastorex
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 
 	"cloud.google.com/go/datastore"
@@ -44,6 +45,10 @@ func TestMap_Save(t *testing.T) {
 		t.Errorf("Map.Save() error = %v, want nil", err)
 		return
 	}
+
+	sort.Slice(got, func(i, j int) bool {
+		return got[i].Name < got[j].Name
+	})
 
 	expected := []datastore.Property{
 		{

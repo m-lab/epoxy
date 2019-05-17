@@ -21,7 +21,7 @@ steps:
    - 'PROJECT=$PROJECT_ID'
    - 'CONTAINER=gcr.io/$PROJECT_ID/epoxy_boot_server:$BUILD_ID'
    # NOTE: Changing zones will require manual intervention.
-   - 'ZONE_mlab_sandbox=us-east1-c'
+   - 'ZONE_mlab_sandbox=us-west2-c'
    - 'ZONE_mlab_staging=us-central1-b'
    - 'ZONE_mlab_oti=us-east1-c'
 

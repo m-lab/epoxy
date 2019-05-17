@@ -131,8 +131,10 @@ func (env *Env) GenerateStage1IPXE(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// TODO(soltesz):
-	// * Save information sent in PostForm.
+	// Save client information sent in PostForm. Results can never be more than a
+	// megabyte and should never be close to that.
+	req.ParseMultipartForm(1024 * 1024)
+	host.AddInformation(req.PostForm)
 
 	// Generate new session IDs.
 	host.GenerateSessionIDs()

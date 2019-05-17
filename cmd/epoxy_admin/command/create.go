@@ -23,6 +23,7 @@ import (
 
 	"cloud.google.com/go/datastore"
 
+	"github.com/m-lab/epoxy/datastorex"
 	"github.com/m-lab/epoxy/storage"
 	"github.com/m-lab/go/rtx"
 
@@ -39,7 +40,7 @@ USAGE:
 
     Creates a new datastore Host record for ePoxy server. Calling "create" on
     an existing host will overwrite the original.
-	
+
 EXAMPLE:
 
     # Use the default boot and update stage URLs:
@@ -90,6 +91,7 @@ func runCreate(cmd *cobra.Command, args []string) {
 			Stage2ChainURL: fmtURL(cfUpdateStage2),
 			Stage3ChainURL: fmtURL(cfUpdateStage3),
 		},
+		CollectedInformation: datastorex.Map{},
 	}
 
 	// Save the host record.

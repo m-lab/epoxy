@@ -110,7 +110,11 @@ func TestDatastore(t *testing.T) {
 	}
 	// Declare the fake datastore client outside the function below so we can access member elements.
 	f := &fakeDatastoreClient{&h}
-	c := &DatastoreConfig{f}
+	c := &DatastoreConfig{
+		Client:    f,
+		Kind:      entityKind,
+		Namespace: namespace,
+	}
 
 	// Store host record.
 	err := c.Save(&h)
@@ -154,7 +158,11 @@ func TestDatastoreFailures(t *testing.T) {
 	}
 	// Declare the fake datastore client outside the function below so we can access member elements.
 	f := &errDatastoreClient{fmt.Errorf("Fake failure")}
-	c := &DatastoreConfig{f}
+	c := &DatastoreConfig{
+		Client:    f,
+		Kind:      entityKind,
+		Namespace: namespace,
+	}
 
 	// Store host record.
 	err := c.Save(&h)

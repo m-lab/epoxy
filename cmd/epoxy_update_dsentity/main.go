@@ -18,11 +18,11 @@ import (
 )
 
 var (
-	fProject string
+	project string
 )
 
 func init() {
-	flag.StringVar(&fProject, "project", "mlab-sandbox", "GCP project name to update.")
+	flag.StringVar(&project, "project", "mlab-sandbox", "GCP project name to update.")
 }
 
 type oldCollectedInformation struct {
@@ -73,7 +73,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	client, err := datastore.NewClient(ctx, fProject)
+	client, err := datastore.NewClient(ctx, project)
 	rtx.Must(err, "Failed to create new datastore client")
 	// Query old namespace and entities for all instances.
 	oldHosts, err := oldList(client)

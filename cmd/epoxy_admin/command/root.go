@@ -53,6 +53,9 @@ var (
 	ufUpdateStage1 string
 	ufUpdateStage2 string
 	ufUpdateStage3 string
+
+	// List flags.
+	lfHostname string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -71,6 +74,7 @@ USAGE:
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	fmt.Println("Project:", fProject)
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

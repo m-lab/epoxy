@@ -15,8 +15,14 @@
 package command
 
 import (
+	"context"
 	"fmt"
+	"regexp"
+	"time"
 
+	"cloud.google.com/go/datastore"
+	"github.com/m-lab/epoxy/storage"
+	"github.com/m-lab/go/rtx"
 	"github.com/spf13/cobra"
 )
 
@@ -29,11 +35,40 @@ USAGE:
 
     TODO: implement list.
 `,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("TODO: implement list")
-	},
+	Run: runList,
+}
+
+func runList(cmd *cobra.Command, args []string) {
+	// Setup Datastore client.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	client, err := datastore.NewClient(ctx, fProject)
+	rtx.Must(err, "Failed to create new datastore client")
+
+	// Save the host record to Datstore.
+	ds := storage.NewDatastoreConfig(client)
+	hosts, err := ds.List()
+	rtx.Must(err, "Failed to list host records")
+
+	// Compile given regex.
+	r, err := regexp.Compile(lfHostname)
+	rtx.Must(err, "Failed to compile given hostname pattern: %q", lfHostname)
+
+	for _, h := range hosts {
+		if !r.MatchString(h.Name) {
+			continue
+		}
+		fmt.Printf("Listing: %s\n", h.Name)
+		fmt.Println(h.String())
+	}
 }
 
 func init() {
 	rootCmd.AddCommand(listCmd)
+
+	// Required local flags.
+	listCmd.Flags().StringVar(&lfHostname, "hostname", "",
+		"Hostname of new record.")
+	listCmd.MarkFlagRequired("hostname")
 }

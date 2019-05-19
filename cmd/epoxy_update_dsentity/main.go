@@ -25,47 +25,50 @@ func init() {
 	flag.StringVar(&project, "project", "mlab-sandbox", "GCP project name to update.")
 }
 
-type oldCollectedInformation struct {
-	Platform         string
-	BuildArch        string
-	Serial           string
-	Asset            string
-	UUID             string
-	Manufacturer     string
-	Product          string
-	Chip             string
-	MAC              string
-	IP               string
-	Version          string
-	PublicSSHHostKey string
+type oldSequence struct {
+	Stage1ChainURL string
+	Stage2ChainURL string
+	Stage3ChainURL string
 }
 
 // A oldHost represents the old datastore entity schema.
 type oldHost struct {
 	Name                 string
 	IPv4Addr             string
-	Boot                 storage.Sequence
-	Update               storage.Sequence
+	Boot                 oldSequence
+	Update               oldSequence
 	UpdateEnabled        bool
 	Extensions           []string
 	CurrentSessionIDs    storage.SessionIDs
 	LastSessionCreation  time.Time
 	LastReport           time.Time
 	LastSuccess          time.Time
-	CollectedInformation oldCollectedInformation
+	CollectedInformation datastorex.Map
 }
 
-var oldEntityKind = "ePoxyHosts"
+var oldEntityKind = "Host"
+var oldNamespace = "ePoxy"
 
 func oldList(c *datastore.Client) ([]*oldHost, error) {
 	var hosts []*oldHost
-	q := datastore.NewQuery(oldEntityKind)
+	q := datastore.NewQuery(oldEntityKind).Namespace(oldNamespace)
 	// Discard array of keys returned since we only need the values in hosts.
 	_, err := c.GetAll(context.Background(), q, &hosts)
 	if err != nil {
 		return nil, err
 	}
 	return hosts, nil
+}
+
+func translateSequence(s oldSequence, stage string) datastorex.Map {
+	stage1IPXE := fmt.Sprintf("https://epoxy-boot-api.%s.measurementlab.net:4430/v1/storage/%s/stage1to2.ipxe", project, stage)
+	stage1JSON := fmt.Sprintf("https://storage.googleapis.com/epoxy-%s/%s/stage1to2.json", project, stage)
+	return datastorex.Map{
+		"stage1.ipxe": stage1IPXE,
+		"stage1.json": stage1JSON,
+		"stage2":      s.Stage2ChainURL,
+		"stage3":      s.Stage3ChainURL,
+	}
 }
 
 func main() {
@@ -79,27 +82,25 @@ func main() {
 	oldHosts, err := oldList(client)
 	rtx.Must(err, "Failed to list old Host entities")
 
-	dsc := storage.NewDatastoreConfig(client)
+	// dsc := storage.NewDatastoreConfig(client)
 
 	for _, old := range oldHosts {
 		// For each one copy to a new storage.Host
 		h := &storage.Host{
-			Name:                old.Name,
-			IPv4Addr:            old.IPv4Addr,
-			Boot:                old.Boot,
-			Update:              old.Update,
-			UpdateEnabled:       old.UpdateEnabled,
-			Extensions:          old.Extensions,
-			CurrentSessionIDs:   old.CurrentSessionIDs,
-			LastSessionCreation: old.LastSessionCreation,
-			LastReport:          old.LastReport,
-			LastSuccess:         old.LastSuccess,
-
-			// We currently collect no information so we're not losing any.
-			CollectedInformation: datastorex.Map{},
+			Name:                 old.Name,
+			IPv4Addr:             old.IPv4Addr,
+			Boot:                 translateSequence(old.Boot, "stage3_coreos"),
+			Update:               translateSequence(old.Update, "stage3_mlxupdate"),
+			UpdateEnabled:        old.UpdateEnabled,
+			Extensions:           old.Extensions,
+			CurrentSessionIDs:    old.CurrentSessionIDs,
+			LastSessionCreation:  old.LastSessionCreation,
+			LastReport:           old.LastReport,
+			LastSuccess:          old.LastSuccess,
+			CollectedInformation: old.CollectedInformation,
 		}
 		fmt.Println(h)
 		// Save each one.
-		dsc.Save(h)
+		// dsc.Save(h)
 	}
 }

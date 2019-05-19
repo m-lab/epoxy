@@ -81,15 +81,17 @@ func runCreate(cmd *cobra.Command, args []string) {
 		IPv4Addr:      cfAddress,
 		UpdateEnabled: cfUpdate,
 		Extensions:    []string{cfExtension},
-		Boot: storage.Sequence{
-			Stage1ChainURL: fmtURL(cfBootStage1),
-			Stage2ChainURL: fmtURL(cfBootStage2),
-			Stage3ChainURL: fmtURL(cfBootStage3),
+		Boot: datastorex.Map{
+			"stage1.ipxe": fmtURL(cfBootStage1),
+			"stage1.json": fmtURL(cfBootStage1JSON),
+			"stage2":      fmtURL(cfBootStage2),
+			"stage3":      fmtURL(cfBootStage3),
 		},
-		Update: storage.Sequence{
-			Stage1ChainURL: fmtURL(cfUpdateStage1),
-			Stage2ChainURL: fmtURL(cfUpdateStage2),
-			Stage3ChainURL: fmtURL(cfUpdateStage3),
+		Update: datastorex.Map{
+			"stage1.ipxe": fmtURL(cfUpdateStage1),
+			"stage1.json": fmtURL(cfUpdateStage1JSON),
+			"stage2":      fmtURL(cfUpdateStage2),
+			"stage3":      fmtURL(cfUpdateStage3),
 		},
 		CollectedInformation: datastorex.Map{},
 	}
@@ -121,7 +123,10 @@ func init() {
 	createCmd.Flags().BoolVar(&cfUpdate, "update", false,
 		"Set Host.UpdateEnabled to true for an existing Host.")
 	createCmd.Flags().StringVar(&cfBootStage1, "boot-stage1",
-		"https://storage.googleapis.com/epoxy-%s/stage3_coreos/stage1to2.ipxe",
+		"https://epoxy-boot-api.%s.measurementlab.net:4430/v1/storage/stage3_coreos/stage1to2.ipxe",
+		"Absolute URL to an action definition to run during stage1 to stage2 boot.")
+	createCmd.Flags().StringVar(&cfBootStage1JSON, "boot-stage1-json",
+		"https://storage.googleapis.com/epoxy-%s/stage3_coreos/stage1to2.json",
 		"Absolute URL to an action definition to run during stage1 to stage2 boot.")
 	createCmd.Flags().StringVar(&cfBootStage2, "boot-stage2",
 		"https://storage.googleapis.com/epoxy-%s/stage3_coreos/stage2to3.json",
@@ -130,7 +135,10 @@ func init() {
 		"https://storage.googleapis.com/epoxy-%s/stage3_coreos/stage3post.json",
 		"Absolute URL to an action definition to run after running stage3 boot.")
 	createCmd.Flags().StringVar(&cfUpdateStage1, "update-stage1",
-		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage1to2.ipxe",
+		"https://epoxy-boot-api.%s.measurementlab.net:4430/v1/storage/stage3_mlxupdate/stage1to2.ipxe",
+		"Absolute URL to an action definition to run during stage1 to stage2 update.")
+	createCmd.Flags().StringVar(&cfUpdateStage1JSON, "update-stage1-json",
+		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage1to2.json",
 		"Absolute URL to an action definition to run during stage1 to stage2 update.")
 	createCmd.Flags().StringVar(&cfUpdateStage2, "update-stage2",
 		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage2to3.json",

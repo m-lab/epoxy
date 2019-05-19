@@ -108,12 +108,14 @@ func handleUpdate(h *storage.Host) {
 	if ufAddress != "" {
 		h.IPv4Addr = ufAddress
 	}
-	h.Boot.Stage1ChainURL = updateURL(fmtURL(ufBootStage1), h.Boot.Stage1ChainURL)
-	h.Boot.Stage2ChainURL = updateURL(fmtURL(ufBootStage2), h.Boot.Stage2ChainURL)
-	h.Boot.Stage3ChainURL = updateURL(fmtURL(ufBootStage3), h.Boot.Stage3ChainURL)
-	h.Update.Stage1ChainURL = updateURL(fmtURL(ufUpdateStage1), h.Update.Stage1ChainURL)
-	h.Update.Stage2ChainURL = updateURL(fmtURL(ufUpdateStage2), h.Update.Stage2ChainURL)
-	h.Update.Stage3ChainURL = updateURL(fmtURL(ufUpdateStage3), h.Update.Stage3ChainURL)
+	h.Boot["stage1.ipxe"] = updateURL(fmtURL(ufBootStage1), h.Boot["stage1.ipxe"])
+	h.Boot["stage1.json"] = updateURL(fmtURL(ufBootStage1JSON), h.Boot["stage1.json"])
+	h.Boot["stage2"] = updateURL(fmtURL(ufBootStage2), h.Boot["stage2"])
+	h.Boot["stage3"] = updateURL(fmtURL(ufBootStage3), h.Boot["stage3"])
+	h.Update["stage1.ipxe"] = updateURL(fmtURL(ufUpdateStage1), h.Update["stage1.ipxe"])
+	h.Update["stage1.json"] = updateURL(fmtURL(ufUpdateStage1JSON), h.Update["stage1.json"])
+	h.Update["stage2"] = updateURL(fmtURL(ufUpdateStage2), h.Update["stage2"])
+	h.Update["stage3"] = updateURL(fmtURL(ufUpdateStage3), h.Update["stage3"])
 }
 
 func init() {
@@ -133,12 +135,16 @@ func init() {
 		"Set Host.UpdateEnabled to true for an existing Host.")
 	updateCmd.Flags().StringVar(&ufBootStage1, "boot-stage1", "",
 		"Absolute URL to an action definition to run during stage1 to stage2 boot.")
+	updateCmd.Flags().StringVar(&ufBootStage1JSON, "boot-stage1-json", "",
+		"Absolute URL to an action definition to run during stage1 to stage2 boot.")
 	updateCmd.Flags().StringVar(&ufBootStage2, "boot-stage2", "",
 		"Absolute URL to an action definition to run during stage2 to stage3 boot.")
 	updateCmd.Flags().StringVar(&ufBootStage3, "boot-stage3", "",
 		"Absolute URL to an action definition to run after running stage3 boot.")
 	updateCmd.Flags().StringVar(&ufUpdateStage1, "update-stage1", "",
 		"Absolute URL to an action definition to run during stage1 to stage2 update.")
+	updateCmd.Flags().StringVar(&ufUpdateStage1JSON, "update-stage1-json", "",
+		"Absolute URL to an action definition to run during stage1 to stage2 boot.")
 	updateCmd.Flags().StringVar(&ufUpdateStage2, "update-stage2", "",
 		"Absolute URL to an action definition to run during stage2 to stage3 update.")
 	updateCmd.Flags().StringVar(&ufUpdateStage3, "update-stage3", "",

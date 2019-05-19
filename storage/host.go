@@ -55,9 +55,9 @@ var allowedCollectedInformation = map[string]bool{
 	"public_ssh_host_key": true,
 }
 
-// TODO: SessionIDs and Sequence structs should be map[string]string, that
+// TODO: SessionIDs structs should be map[string]string, that
 // store target stage names as keys. This prevents hard-coding the target names,
-// the SessionID names and the Sequence stage names.
+// the SessionID names.
 
 // SessionIDs contains the three session IDs generated when requesting a stage1 target.
 type SessionIDs struct {
@@ -66,35 +66,6 @@ type SessionIDs struct {
 	ReportID string // Needed for requesting the report target.
 	// TODO: support multiple extensions.
 	ExtensionID string // Needed for requesting the extension target.
-}
-
-// TODO: Sequences could be a separate type stored in datastore. These could be
-// named and referenced by Host objects by name.
-
-// Sequence represents a set of operator-provided iPXE scripts or JSON nextboot Configs.
-type Sequence struct {
-	// Stage1ChainURL is the absolute URL to an iPXE script for booting from stage1 to stage2.
-	Stage1ChainURL string
-	// Stage2ChainURL is the absolute URL to a JSON config for booting from stage2 to stage3.
-	Stage2ChainURL string
-	// Stage3ChainURL is the absolute URL to a JSON config for running commands in stage3. For
-	// example, "flashrom", or "join global k8s cluster".
-	Stage3ChainURL string
-}
-
-// NextURL returns the Chain URL corresponding to the given stage name.
-func (s Sequence) NextURL(stage string) string {
-	switch stage {
-	case "stage1":
-		return s.Stage1ChainURL
-	case "stage2":
-		return s.Stage2ChainURL
-	case "stage3":
-		return s.Stage3ChainURL
-	default:
-		// TODO: support a default error url.
-		return ""
-	}
 }
 
 // A Host represents the configuration of a server managed by ePoxy.
@@ -107,12 +78,12 @@ type Host struct {
 	// TODO: add IPv6Addr.
 
 	// Boot is the typical boot sequence for this Host.
-	Boot Sequence
+	Boot datastorex.Map
 	// Update is an alternate boot sequence, typically used to update the system, e.g. reinstall, reflash.
-	Update Sequence
+	Update datastorex.Map
 
-	// UpdateEnabled controls whether ePoxy returns the Update Sequence (true)
-	// or Boot Sequence (false) Chain URLs.
+	// UpdateEnabled controls whether ePoxy returns the Update sequence (true)
+	// or Boot sequence (false) Chain URLs.
 	UpdateEnabled bool
 
 	// Extensions is an array of extension operation names enabled for this host.
@@ -148,7 +119,7 @@ func (h *Host) GenerateSessionIDs() {
 }
 
 // CurrentSequence returns the currently enabled boot sequence.
-func (h *Host) CurrentSequence() Sequence {
+func (h *Host) CurrentSequence() datastorex.Map {
 	if h.UpdateEnabled {
 		return h.Update
 	}

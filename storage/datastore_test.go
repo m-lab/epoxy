@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"cloud.google.com/go/datastore"
+	"github.com/m-lab/epoxy/datastorex"
 )
 
 // fakeDatastoreClient implements the datastoreClient interface for testing.
@@ -101,8 +102,8 @@ func TestDatastore(t *testing.T) {
 	h := Host{
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
-		Boot: Sequence{
-			Stage1ChainURL: "https://example.com/path/stage1to2/stage1to2.ipxe",
+		Boot: datastorex.Map{
+			"stage1.ipxe": "https://example.com/path/stage1to2/stage1to2.ipxe",
 		},
 		CurrentSessionIDs: SessionIDs{
 			Stage2ID: "01234",
@@ -149,8 +150,8 @@ func TestDatastoreFailures(t *testing.T) {
 	h := Host{
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
-		Boot: Sequence{
-			Stage1ChainURL: "https://example.com/path/stage1to2/stage1to2.ipxe",
+		Boot: datastorex.Map{
+			"stage1.ipxe": "https://example.com/path/stage1to2/stage1to2.ipxe",
 		},
 		CurrentSessionIDs: SessionIDs{
 			Stage2ID: "01234",

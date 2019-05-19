@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/m-lab/epoxy/datastorex"
 	"github.com/m-lab/epoxy/extension"
 	"github.com/m-lab/epoxy/nextboot"
 	"github.com/m-lab/epoxy/storage"
@@ -65,8 +66,8 @@ func TestGenerateStage1IPXE(t *testing.T) {
 	h := &storage.Host{
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
-		Boot: storage.Sequence{
-			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+		Boot: datastorex.Map{
+			"stage1.ipxe": "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
 		},
 	}
 	env := &Env{
@@ -155,8 +156,8 @@ func TestEnv_GenerateStage1IPXE(t *testing.T) {
 	h := &storage.Host{
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
-		Boot: storage.Sequence{
-			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+		Boot: datastorex.Map{
+			"stage1.ipxe": "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
 		},
 	}
 	tests := []struct {
@@ -219,8 +220,8 @@ func TestEnv_GenerateJSONConfig(t *testing.T) {
 	h := &storage.Host{
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
-		Boot: storage.Sequence{
-			Stage2ChainURL: "https://storage.googleapis.com/epoxy-boot-server/stage2/stage2.ipxe",
+		Boot: datastorex.Map{
+			"stage2": "https://storage.googleapis.com/epoxy-boot-server/stage2/stage2.ipxe",
 		},
 		CurrentSessionIDs: storage.SessionIDs{
 			Stage2ID: "12345",
@@ -238,7 +239,7 @@ func TestEnv_GenerateJSONConfig(t *testing.T) {
 			config:   fakeConfig{host: h, failOnLoad: false, failOnSave: false},
 			status:   http.StatusOK,
 			from:     h.IPv4Addr,
-			expected: (&nextboot.Config{V1: &nextboot.V1{Chain: h.Boot.Stage2ChainURL}}).String(),
+			expected: (&nextboot.Config{V1: &nextboot.V1{Chain: h.Boot["stage2"]}}).String(),
 		},
 		{
 			name:     "fail-on-load",
@@ -517,8 +518,8 @@ func TestEnv_GenerateStage1JSON(t *testing.T) {
 	h := &storage.Host{
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
-		Boot: storage.Sequence{
-			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+		Boot: datastorex.Map{
+			"stage1.ipxe": "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
 		},
 	}
 	tests := []struct {

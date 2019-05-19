@@ -12,12 +12,14 @@ import (
 func TestMap_Load(t *testing.T) {
 	ps := []datastore.Property{
 		{
-			Name:  "a",
-			Value: "b",
+			Name:    "a",
+			Value:   "b",
+			NoIndex: true,
 		},
 		{
-			Name:  "c",
-			Value: "d",
+			Name:    "c",
+			Value:   "d",
+			NoIndex: true,
 		},
 		{
 			// Should be ignored.
@@ -52,12 +54,14 @@ func TestMap_Save(t *testing.T) {
 
 	expected := []datastore.Property{
 		{
-			Name:  "a",
-			Value: "b",
+			Name:    "a",
+			Value:   "b",
+			NoIndex: true,
 		},
 		{
-			Name:  "c",
-			Value: "d",
+			Name:    "c",
+			Value:   "d",
+			NoIndex: true,
 		},
 	}
 	if !reflect.DeepEqual(got, expected) {

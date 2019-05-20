@@ -205,13 +205,10 @@ func setupLetsEncryptServer(addr string, r http.Handler, hostname string) *http.
 	m := &autocert.Manager{
 		// Certificates are cached to a local directory.
 		Cache: autocert.DirCache("autocert.cache"),
-		Client: &acme.Client{
-			DirectoryURL: letsEncryptDirectoryURL,
-		},
 		// The "Let's Encrypt Terms of Service" are accepted automatically.
 		Prompt: autocert.AcceptTOS,
 		// The ePoxy server will only accept TLS host requests from given hostname.
-		HostPolicy: autocert.HostWhitelist(hostname),
+		HostPolicy: autocert.HostWhitelist(hostname, "extra-"+hostname),
 	}
 	// Server with custom TLS config.
 	return &http.Server{
@@ -241,7 +238,7 @@ func startTLSServerAsync(bindAddr string, router http.Handler, hostname string) 
 	// Allocate and use LetsEncrypt certificates on given port.
 	tlsServer := setupLetsEncryptServer(tlsAddr, router, hostname)
 	// Certificates are already configured in the server.TLSConfig.
-	httpx.ListenAndServeTLSAsync(tlsServer, "", "")
+	rtx.Must(httpx.ListenAndServeTLSAsync(tlsServer, "", ""), "Failed to start server")
 
 	// Because we're running LetsEncrypt certificates on the given port,
 	// run the iPXE server on a higher port, e.g. "4430".

@@ -82,7 +82,7 @@ func main() {
 	oldHosts, err := oldList(client)
 	rtx.Must(err, "Failed to list old Host entities")
 
-	// dsc := storage.NewDatastoreConfig(client)
+	dsc := storage.NewDatastoreConfig(client)
 
 	for _, old := range oldHosts {
 		// For each one copy to a new storage.Host
@@ -101,6 +101,6 @@ func main() {
 		}
 		fmt.Println(h)
 		// Save each one.
-		// dsc.Save(h)
+		dsc.Save(h)
 	}
 }

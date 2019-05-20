@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/m-lab/epoxy/datastorex"
-	"github.com/m-lab/epoxy/storage"
 )
 
 func TestHostString(t *testing.T) {
@@ -69,14 +68,14 @@ func TestHostString(t *testing.T) {
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
 		Boot: datastorex.Map{
-			storage.Stage1IPXE: "https://storage.googleapis.com/epoxy-boot-server/coreos/stage1to2.ipxe",
-			storage.Stage2:     "https://storage.googleapis.com/epoxy-boot-server/coreos/stage2to3.json",
-			storage.Stage3:     "https://storage.googleapis.com/epoxy-boot-server/coreos/stage3setup.json",
+			Stage1IPXE: "https://storage.googleapis.com/epoxy-boot-server/coreos/stage1to2.ipxe",
+			Stage2:     "https://storage.googleapis.com/epoxy-boot-server/coreos/stage2to3.json",
+			Stage3:     "https://storage.googleapis.com/epoxy-boot-server/coreos/stage3setup.json",
 		},
 		Update: datastorex.Map{
-			storage.Stage1IPXE: "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
-			storage.Stage2:     "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
-			storage.Stage3:     "",
+			Stage1IPXE: "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
+			Stage2:     "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
+			Stage3:     "",
 		},
 		CurrentSessionIDs: SessionIDs{
 			Stage2ID: "01234",

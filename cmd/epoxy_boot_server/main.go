@@ -54,6 +54,7 @@ import (
 	"github.com/m-lab/go/rtx"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -91,6 +92,12 @@ var (
 	// storagePrefixURL is the prefix URL for storage proxy requests. If empty, the
 	// storage proxy is disabled.
 	storagePrefixURL = os.Getenv("STORAGE_PREFIX_URL")
+
+	// letsEncryptDirectoryURL is the directory URL for registering LetsEncrypt
+	// certificates. Because the production instance has rate limits, use the
+	// "staging" directory for experimental or sandbox deployments.
+	// Staging directory: "https://acme-staging-v02.api.letsencrypt.org/directory"
+	letsEncryptDirectoryURL = acme.LetsEncryptURL
 )
 
 const (
@@ -109,6 +116,9 @@ func init() {
 	}
 	if os.Getenv("ALLOW_FORWARDED_REQUESTS") == "true" {
 		allowForwardedRequests = true
+	}
+	if directory := os.Getenv("LETS_ENCRYPT_DIRECTORY_URL"); directory != "" {
+		letsEncryptDirectoryURL = directory
 	}
 }
 
@@ -193,6 +203,9 @@ func setupLetsEncryptServer(addr string, r http.Handler, hostname string) *http.
 	m := &autocert.Manager{
 		// Certificates are cached to a local directory.
 		Cache: autocert.DirCache("autocert.cache"),
+		Client: &acme.Client{
+			DirectoryURL: letsEncryptDirectoryURL,
+		},
 		// The "Let's Encrypt Terms of Service" are accepted automatically.
 		Prompt: autocert.AcceptTOS,
 		// The ePoxy server will only accept TLS host requests from given hostname.

@@ -34,6 +34,11 @@ if [[ -z "${PROJECT}" || -z "${CONTAINER}" || -z "${ZONE}" ]]; then
   exit 1
 fi
 
+LETS_ENCRYPT_DIRECTORY_URL=
+if [[ "${PROJECT}" = "mlab-sandbox" ]] ; then
+  LETS_ENCRYPT_DIRECTORY_URL="https://acme-staging-v02.api.letsencrypt.org/directory"
+fi
+
 # Lookup address.
 IP=$(gcloud compute addresses describe --project "${PROJECT}" \
   --format "value(address)" --region "${ZONE%-*}" epoxy-boot-api)
@@ -71,6 +76,7 @@ IPXE_KEY_FILE=/certs/server-key.pem
 PUBLIC_HOSTNAME=epoxy-boot-api.${PROJECT}.measurementlab.net
 STORAGE_PREFIX_URL=https://storage.googleapis.com/epoxy-${PROJECT}
 GCLOUD_PROJECT=${PROJECT}
+LETS_ENCRYPT_DIRECTORY_URL=${LETS_ENCRYPT_DIRECTORY_URL}
 EOF
 
 CURRENT_FIREWALL=$(gcloud compute firewall-rules list --project "${PROJECT}" \

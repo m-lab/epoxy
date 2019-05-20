@@ -120,6 +120,8 @@ func init() {
 	if directory := os.Getenv("LETS_ENCRYPT_DIRECTORY_URL"); directory != "" {
 		letsEncryptDirectoryURL = directory
 	}
+
+	log.SetFlags(log.LUTC | log.Llongfile | log.LstdFlags)
 }
 
 // addRoute adds a new handler for a pattern-based URL target to a Gorilla mux.Router.

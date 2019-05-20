@@ -44,7 +44,7 @@ func TestFormatStage1IPXEScript(t *testing.T) {
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
 		Boot: datastorex.Map{
-			"stage1.ipxe": "https://example.com/path/stage1to2/stage1to2.ipxe",
+			storage.Stage1IPXE: "https://example.com/path/stage1to2/stage1to2.ipxe",
 		},
 		Extensions: []string{"ext1", "ext2"},
 		CurrentSessionIDs: storage.SessionIDs{

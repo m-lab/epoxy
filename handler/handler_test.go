@@ -67,7 +67,7 @@ func TestGenerateStage1IPXE(t *testing.T) {
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
 		Boot: datastorex.Map{
-			"stage1.ipxe": "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+			storage.Stage1IPXE: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
 		},
 	}
 	env := &Env{
@@ -157,7 +157,7 @@ func TestEnv_GenerateStage1IPXE(t *testing.T) {
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
 		Boot: datastorex.Map{
-			"stage1.ipxe": "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+			storage.Stage1IPXE: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
 		},
 	}
 	tests := []struct {
@@ -519,7 +519,7 @@ func TestEnv_GenerateStage1JSON(t *testing.T) {
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
 		Boot: datastorex.Map{
-			"stage1.ipxe": "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
+			storage.Stage1IPXE: "https://storage.googleapis.com/epoxy-boot-server/stage1to2/stage1to2.ipxe",
 		},
 	}
 	tests := []struct {

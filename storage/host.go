@@ -55,6 +55,14 @@ var allowedCollectedInformation = map[string]bool{
 	"public_ssh_host_key": true,
 }
 
+// Constant names for standard boot & update sequence maps.
+const (
+	Stage1IPXE = "stage1.ipxe"
+	Stage1JSON = "stage1.json"
+	Stage2     = "stage2"
+	Stage3     = "stage3"
+)
+
 // TODO: SessionIDs structs should be map[string]string, that
 // store target stage names as keys. This prevents hard-coding the target names,
 // the SessionID names.

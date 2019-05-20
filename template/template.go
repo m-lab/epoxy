@@ -53,7 +53,7 @@ func FormatStage1IPXEScript(h *storage.Host, serverAddr string) string {
 
 	// Prepare a map for evaluating template.
 	vals := make(map[string]interface{}, 5)
-	vals["Stage1ChainURL"] = s["stage1.ipxe"]
+	vals["Stage1ChainURL"] = s[storage.Stage1IPXE]
 	vals["Stage2URL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/stage2",
 		serverAddr, h.Name, h.CurrentSessionIDs.Stage2ID)
 	vals["Stage3URL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/stage3",

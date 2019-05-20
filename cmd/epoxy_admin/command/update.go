@@ -108,14 +108,14 @@ func handleUpdate(h *storage.Host) {
 	if ufAddress != "" {
 		h.IPv4Addr = ufAddress
 	}
-	h.Boot["stage1.ipxe"] = updateURL(fmtURL(ufBootStage1), h.Boot["stage1.ipxe"])
-	h.Boot["stage1.json"] = updateURL(fmtURL(ufBootStage1JSON), h.Boot["stage1.json"])
-	h.Boot["stage2"] = updateURL(fmtURL(ufBootStage2), h.Boot["stage2"])
-	h.Boot["stage3"] = updateURL(fmtURL(ufBootStage3), h.Boot["stage3"])
-	h.Update["stage1.ipxe"] = updateURL(fmtURL(ufUpdateStage1), h.Update["stage1.ipxe"])
-	h.Update["stage1.json"] = updateURL(fmtURL(ufUpdateStage1JSON), h.Update["stage1.json"])
-	h.Update["stage2"] = updateURL(fmtURL(ufUpdateStage2), h.Update["stage2"])
-	h.Update["stage3"] = updateURL(fmtURL(ufUpdateStage3), h.Update["stage3"])
+	h.Boot[storage.Stage1IPXE] = updateURL(fmtURL(ufBootStage1), h.Boot[storage.Stage1IPXE])
+	h.Boot[storage.Stage1JSON] = updateURL(fmtURL(ufBootStage1JSON), h.Boot[storage.Stage1JSON])
+	h.Boot[storage.Stage2] = updateURL(fmtURL(ufBootStage2), h.Boot[storage.Stage2])
+	h.Boot[storage.Stage3] = updateURL(fmtURL(ufBootStage3), h.Boot[storage.Stage3])
+	h.Update[storage.Stage1IPXE] = updateURL(fmtURL(ufUpdateStage1), h.Update[storage.Stage1IPXE])
+	h.Update[storage.Stage1JSON] = updateURL(fmtURL(ufUpdateStage1JSON), h.Update[storage.Stage1JSON])
+	h.Update[storage.Stage2] = updateURL(fmtURL(ufUpdateStage2), h.Update[storage.Stage2])
+	h.Update[storage.Stage3] = updateURL(fmtURL(ufUpdateStage3), h.Update[storage.Stage3])
 }
 
 func init() {

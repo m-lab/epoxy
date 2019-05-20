@@ -64,10 +64,10 @@ func translateSequence(s oldSequence, stage string) datastorex.Map {
 	stage1IPXE := fmt.Sprintf("https://epoxy-boot-api.%s.measurementlab.net:4430/v1/storage/%s/stage1to2.ipxe", project, stage)
 	stage1JSON := fmt.Sprintf("https://storage.googleapis.com/epoxy-%s/%s/stage1to2.json", project, stage)
 	return datastorex.Map{
-		"stage1.ipxe": stage1IPXE,
-		"stage1.json": stage1JSON,
-		"stage2":      s.Stage2ChainURL,
-		"stage3":      s.Stage3ChainURL,
+		storage.Stage1IPXE: stage1IPXE,
+		storage.Stage1JSON: stage1JSON,
+		storage.Stage2:     s.Stage2ChainURL,
+		storage.Stage3:     s.Stage3ChainURL,
 	}
 }
 

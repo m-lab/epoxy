@@ -12,12 +12,13 @@ before_install:
 
 script:
 # Run "unit tests" with coverage.
-- for module in handler nextboot storage template ; do
-  go test -v -covermode=count -coverprofile=$module.cov github.com/m-lab/epoxy/$module ;
-  done
+#- for module in handler nextboot storage template ; do
+#  go test -v -covermode=count -coverprofile=$module.cov github.com/m-lab/epoxy/$module ;
+#  done
+- go test -v -covermode=count -coverprofile=merge.cov github.com/m-lab/epoxy/...
 
 # Coveralls
-- $HOME/gopath/bin/gocovmerge *.cov > merge.cov
+#- $HOME/gopath/bin/gocovmerge *.cov > merge.cov
 - $HOME/gopath/bin/goveralls -coverprofile=merge.cov -service=travis-ci
 
 # Additionally ensure that the server builds.

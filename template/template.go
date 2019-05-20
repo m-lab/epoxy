@@ -53,7 +53,7 @@ func FormatStage1IPXEScript(h *storage.Host, serverAddr string) string {
 
 	// Prepare a map for evaluating template.
 	vals := make(map[string]interface{}, 5)
-	vals["Stage1ChainURL"] = s.NextURL("stage1")
+	vals["Stage1ChainURL"] = s[storage.Stage1IPXE]
 	vals["Stage2URL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/stage2",
 		serverAddr, h.Name, h.CurrentSessionIDs.Stage2ID)
 	vals["Stage3URL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/stage3",
@@ -94,14 +94,15 @@ func CreateStage1Action(h *storage.Host, serverAddr string) string {
 			"epoxy.report": fmt.Sprintf("https://%s/v1/boot/%s/%s/report", serverAddr, h.Name, h.CurrentSessionIDs.ReportID),
 		},
 		V1: &nextboot.V1{
-			Chain: s.NextURL("stage1"),
+			Chain: s["stage1.json"],
 		},
 	}
 
 	// Construct an extension URL for all extensions this host supports.
 	// TODO: verify that extensions actually exist. e.g. do not generate invalid urls.
 	for _, operation := range h.Extensions {
-		c.Kargs["epoxy."+operation] = fmt.Sprintf("https://%s/v1/boot/%s/%s/extension/%s", serverAddr, h.Name, h.CurrentSessionIDs.ExtensionID, operation)
+		c.Kargs["epoxy."+operation] = fmt.Sprintf(
+			"https://%s/v1/boot/%s/%s/extension/%s", serverAddr, h.Name, h.CurrentSessionIDs.ExtensionID, operation)
 	}
 
 	return c.String()
@@ -113,7 +114,7 @@ func FormatJSONConfig(h *storage.Host, stage string) string {
 	s := h.CurrentSequence()
 	c := nextboot.Config{
 		V1: &nextboot.V1{
-			Chain: s.NextURL(stage),
+			Chain: s[stage],
 		},
 	}
 	return c.String()

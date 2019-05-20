@@ -31,28 +31,35 @@ var (
 // different default values.
 var (
 	// Create flags.
-	cfHostname     string
-	cfAddress      string
-	cfExtension    string
-	cfUpdate       bool
-	cfBootStage1   string
-	cfBootStage2   string
-	cfBootStage3   string
-	cfUpdateStage1 string
-	cfUpdateStage2 string
-	cfUpdateStage3 string
+	cfHostname         string
+	cfAddress          string
+	cfExtension        string
+	cfUpdate           bool
+	cfBootStage1       string
+	cfBootStage1JSON   string
+	cfBootStage2       string
+	cfBootStage3       string
+	cfUpdateStage1     string
+	cfUpdateStage1JSON string
+	cfUpdateStage2     string
+	cfUpdateStage3     string
 
 	// Update flags.
-	ufHostname     string
-	ufAddress      string
-	ufExtension    string
-	ufUpdate       bool
-	ufBootStage1   string
-	ufBootStage2   string
-	ufBootStage3   string
-	ufUpdateStage1 string
-	ufUpdateStage2 string
-	ufUpdateStage3 string
+	ufHostname         string
+	ufAddress          string
+	ufExtension        string
+	ufUpdate           bool
+	ufBootStage1       string
+	ufBootStage1JSON   string
+	ufBootStage2       string
+	ufBootStage3       string
+	ufUpdateStage1     string
+	ufUpdateStage1JSON string
+	ufUpdateStage2     string
+	ufUpdateStage3     string
+
+	// List flags.
+	lfHostname string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -71,6 +78,7 @@ USAGE:
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	fmt.Println("Project:", fProject)
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

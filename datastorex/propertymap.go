@@ -35,6 +35,9 @@ func (mp *Map) Save() ([]datastore.Property, error) {
 		d = append(d, datastore.Property{
 			Name:  k,
 			Value: v,
+			// Force property to not be indexed. This allows more freedom of the
+			// property name, i.e. may contain ".".
+			NoIndex: true,
 		})
 	}
 	return d, nil

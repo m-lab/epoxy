@@ -19,6 +19,8 @@ import (
 	"log"
 	"testing"
 	"time"
+
+	"github.com/m-lab/epoxy/datastorex"
 )
 
 func TestHostString(t *testing.T) {
@@ -26,14 +28,14 @@ func TestHostString(t *testing.T) {
     "Name": "mlab1.iad1t.measurement-lab.org",
     "IPv4Addr": "165.117.240.9",
     "Boot": {
-        "Stage1ChainURL": "https://storage.googleapis.com/epoxy-boot-server/coreos/stage1to2.ipxe",
-        "Stage2ChainURL": "https://storage.googleapis.com/epoxy-boot-server/coreos/stage2to3.json",
-        "Stage3ChainURL": "https://storage.googleapis.com/epoxy-boot-server/coreos/stage3setup.json"
+        "stage1.ipxe": "https://storage.googleapis.com/epoxy-boot-server/coreos/stage1to2.ipxe",
+        "stage2": "https://storage.googleapis.com/epoxy-boot-server/coreos/stage2to3.json",
+        "stage3": "https://storage.googleapis.com/epoxy-boot-server/coreos/stage3setup.json"
     },
     "Update": {
-        "Stage1ChainURL": "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
-        "Stage2ChainURL": "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
-        "Stage3ChainURL": ""
+        "stage1.ipxe": "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
+        "stage2": "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
+        "stage3": ""
     },
     "UpdateEnabled": false,
     "Extensions": null,
@@ -65,15 +67,15 @@ func TestHostString(t *testing.T) {
 	h := Host{
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
-		Boot: Sequence{
-			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/coreos/stage1to2.ipxe",
-			Stage2ChainURL: "https://storage.googleapis.com/epoxy-boot-server/coreos/stage2to3.json",
-			Stage3ChainURL: "https://storage.googleapis.com/epoxy-boot-server/coreos/stage3setup.json",
+		Boot: datastorex.Map{
+			Stage1IPXE: "https://storage.googleapis.com/epoxy-boot-server/coreos/stage1to2.ipxe",
+			Stage2:     "https://storage.googleapis.com/epoxy-boot-server/coreos/stage2to3.json",
+			Stage3:     "https://storage.googleapis.com/epoxy-boot-server/coreos/stage3setup.json",
 		},
-		Update: Sequence{
-			Stage1ChainURL: "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
-			Stage2ChainURL: "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
-			Stage3ChainURL: "",
+		Update: datastorex.Map{
+			Stage1IPXE: "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
+			Stage2:     "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
+			Stage3:     "",
 		},
 		CurrentSessionIDs: SessionIDs{
 			Stage2ID: "01234",

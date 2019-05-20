@@ -21,6 +21,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/lithammer/dedent"
+	"github.com/m-lab/epoxy/datastorex"
 	"github.com/m-lab/epoxy/storage"
 )
 
@@ -42,8 +43,8 @@ func TestFormatStage1IPXEScript(t *testing.T) {
 	h := &storage.Host{
 		Name:     "mlab1.iad1t.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
-		Boot: storage.Sequence{
-			Stage1ChainURL: "https://example.com/path/stage1to2/stage1to2.ipxe",
+		Boot: datastorex.Map{
+			storage.Stage1IPXE: "https://example.com/path/stage1to2/stage1to2.ipxe",
 		},
 		Extensions: []string{"ext1", "ext2"},
 		CurrentSessionIDs: storage.SessionIDs{
@@ -117,8 +118,8 @@ func TestFormatJSONConfig(t *testing.T) {
 			name: "success",
 			h: &storage.Host{
 				Name: "mlab1.foo01.measurement-lab.org",
-				Boot: storage.Sequence{
-					Stage2ChainURL: "https://example.com/path/stage2/stage2",
+				Boot: datastorex.Map{
+					"stage2": "https://example.com/path/stage2/stage2",
 				},
 			},
 			stage: "stage2",

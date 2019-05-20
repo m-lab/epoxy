@@ -23,7 +23,7 @@ import (
 
 	"cloud.google.com/go/datastore"
 	"github.com/m-lab/epoxy/datastorex"
-	"src/github.com/m-lab/epoxy/storage"
+	"github.com/m-lab/epoxy/storage"
 )
 
 // fakeDatastoreClient implements the datastoreClient interface for testing.

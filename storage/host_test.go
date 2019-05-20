@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/m-lab/epoxy/datastorex"
-	"src/github.com/m-lab/epoxy/storage"
+	"github.com/m-lab/epoxy/storage"
 )
 
 func TestHostString(t *testing.T) {

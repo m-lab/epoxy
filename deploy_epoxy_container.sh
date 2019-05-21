@@ -69,7 +69,7 @@ until docker run --rm --tty --volume /var/lib/toolbox:/tmp/go/bin \
    "go get -u github.com/googlecloudplatform/gcsfuse &&
     apt-get update --quiet=2 &&
     apt-get install --yes fuse &&
-    cp /bin/fusermount /tmp/go/bin"
+    cp /bin/fusermount /tmp/go/bin" ; do
   sleep 5
 done
 

@@ -56,25 +56,27 @@ set -x
 mkdir "${CERTDIR}"
 # Copy certificates from GCS.
 # Retry because docker fails to contact gcr.io sometimes.
-until docker run --tty --volume "${CERTDIR}:${CERTDIR}" \
-  gcr.io/cloud-builders/gsutil \
-  cp gs://epoxy-${PROJECT}-private/server-certs.pem \
-      gs://epoxy-${PROJECT}-private/server-key.pem \
-      "${CERTDIR}"; do
-  sleep 5
-done
-docker run --rm --volume /var/lib/toolbox:/tmp/go/bin \
+#until docker run --tty --volume "${CERTDIR}:${CERTDIR}" \
+#  gcr.io/cloud-builders/gsutil \
+#  cp gs://epoxy-${PROJECT}-private/server-certs.pem \
+#      gs://epoxy-${PROJECT}-private/server-key.pem \
+#      "${CERTDIR}"; do
+#  sleep 5
+#done
+until docker run --rm --tty --volume /var/lib/toolbox:/tmp/go/bin \
   --env "GOPATH=/tmp/go" \
   amd64/golang:1.11.5 /bin/bash -c \
    "go get -u github.com/googlecloudplatform/gcsfuse &&
     apt-get update --quiet=2 &&
     apt-get install --yes fuse &&
     cp /bin/fusermount /tmp/go/bin"
+  sleep 5
+done
 
-mkdir /home/epoxy/bucket
+mkdir ${CERTDIR}/bucket
 export PATH=\$PATH:/var/lib/toolbox
 /var/lib/toolbox/gcsfuse --implicit-dirs -o rw,allow_other \
-  epoxy-${PROJECT}-private /home/epoxy/bucket
+  epoxy-${PROJECT}-private ${CERTDIR}/bucket
 EOF
 
 cat <<EOF >config.env

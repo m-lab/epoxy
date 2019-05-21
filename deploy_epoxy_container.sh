@@ -54,15 +54,8 @@ cat <<EOF >startup.sh
 #!/bin/bash
 set -x
 mkdir "${CERTDIR}"
-# Copy certificates from GCS.
+# Build the GCS fuse user space tools.
 # Retry because docker fails to contact gcr.io sometimes.
-#until docker run --tty --volume "${CERTDIR}:${CERTDIR}" \
-#  gcr.io/cloud-builders/gsutil \
-#  cp gs://epoxy-${PROJECT}-private/server-certs.pem \
-#      gs://epoxy-${PROJECT}-private/server-key.pem \
-#      "${CERTDIR}"; do
-#  sleep 5
-#done
 until docker run --rm --tty --volume /var/lib/toolbox:/tmp/go/bin \
   --env "GOPATH=/tmp/go" \
   amd64/golang:1.11.5 /bin/bash -c \

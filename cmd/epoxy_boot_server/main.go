@@ -192,7 +192,7 @@ func setupLetsEncryptServer(addr string, r http.Handler, hostname string) *http.
 	// We will listen on standard TLS port using LetsEncrypt certificates.
 	m := &autocert.Manager{
 		// Certificates are cached to a local directory.
-		Cache: autocert.DirCache("autocert.cache"),
+		Cache: autocert.DirCache("/certs/autocert.cache"),
 		// The "Let's Encrypt Terms of Service" are accepted automatically.
 		Prompt: autocert.AcceptTOS,
 		// The ePoxy server will only accept TLS host requests from given hostname.

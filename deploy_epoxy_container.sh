@@ -54,15 +54,22 @@ cat <<EOF >startup.sh
 #!/bin/bash
 set -x
 mkdir "${CERTDIR}"
-# Copy certificates from GCS.
+# Build the GCS fuse user space tools.
 # Retry because docker fails to contact gcr.io sometimes.
-until docker run --tty --volume "${CERTDIR}:${CERTDIR}" \
-  gcr.io/cloud-builders/gsutil \
-  cp gs://epoxy-${PROJECT}-private/server-certs.pem \
-      gs://epoxy-${PROJECT}-private/server-key.pem \
-      "${CERTDIR}"; do
+until docker run --rm --tty --volume /var/lib/toolbox:/tmp/go/bin \
+  --env "GOPATH=/tmp/go" \
+  amd64/golang:1.11.5 /bin/bash -c \
+   "go get -u github.com/googlecloudplatform/gcsfuse &&
+    apt-get update --quiet=2 &&
+    apt-get install --yes fuse &&
+    cp /bin/fusermount /tmp/go/bin" ; do
   sleep 5
 done
+
+mkdir ${CERTDIR}/bucket
+export PATH=\$PATH:/var/lib/toolbox
+/var/lib/toolbox/gcsfuse --implicit-dirs -o rw,allow_other \
+  epoxy-${PROJECT}-private ${CERTDIR}/bucket
 EOF
 
 cat <<EOF >config.env
@@ -91,11 +98,11 @@ gcloud compute instances create-with-container "${UPDATED_INSTANCE}" \
   --project "${PROJECT}" \
   --zone "${ZONE}" \
   --tags allow-epoxy-ports \
-  --scopes default,datastore \
+  --scopes default,datastore,storage-full \
   --metadata-from-file "startup-script=startup.sh" \
   --network-interface network=mlab-platform-network,subnet=epoxy \
   --container-image "${CONTAINER}" \
-  --container-mount-host-path host-path=/home/epoxy,mount-path=/certs \
+  --container-mount-host-path host-path=${CERTDIR}/bucket,mount-path=/certs \
   --container-env-file config.env
 
 sleep 20

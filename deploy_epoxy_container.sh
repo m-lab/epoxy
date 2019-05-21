@@ -102,7 +102,7 @@ gcloud compute instances create-with-container "${UPDATED_INSTANCE}" \
   --metadata-from-file "startup-script=startup.sh" \
   --network-interface network=mlab-platform-network,subnet=epoxy \
   --container-image "${CONTAINER}" \
-  --container-mount-host-path host-path=/home/epoxy/bucket,mount-path=/certs \
+  --container-mount-host-path host-path=${CERTDIR}/bucket,mount-path=/certs \
   --container-env-file config.env
 
 sleep 20

@@ -61,10 +61,14 @@ EPOXY_SUBNET_IN_REGION=$(gcloud compute networks subnets list \
   "${ARGS[@]}" || : )
 if [[ -z "${EPOXY_SUBNET_IN_REGION}" ]]; then
   # If it doesn't exist, then create it with the first available network.
+  # NOTE: This logic finds the second octet (e.g. 0-255) from existing subnets
+  # (from 10.0.0.0/8), and compares this sequence to a natural sequence 0-255,
+  # and taking the first value found only in the natural squence. The effect is
+  # that we allocate the lowest available /16 network.
   N=$( comm -1 -3 --nocheck-order \
     <( gcloud compute networks subnets list \
-        --network "${NETWORK}" --format "value(ipCidrRange)" \
-        | sed -e 's/10\.//g' -e 's/.0.0\/16//g' | sort -n ) \
+        --network "${NETWORK}" --format "value(ipCidrRange)" "${ARGS[@]}" \
+        | cut -d. -f2 | sort -n ) \
     <( seq 0 255 )  | head -n 1 )
   gcloud compute networks subnets create "${EPOXY_SUBNET}" \
     --network "${NETWORK}" \

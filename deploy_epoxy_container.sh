@@ -50,6 +50,35 @@ if [[ -z "${NETWORK}" ]]; then
   exit 1
 fi
 
+# Find the lowest network number available for a new epoxy subnet.
+function find_lowest_network_number() {
+  local current_sequence=$( mktemp )
+  local natural_sequence=$( mktemp )
+  local available=$( mktemp )
+
+  # List current network subnets, and extract the second octet from each.
+  gcloud compute networks subnets list \
+        --network "${NETWORK}" --format "value(ipCidrRange)" "${ARGS[@]}" \
+        | cut -d. -f2 | sort -n > "${current_sequence}"
+
+  # Generate a natural sequence from 0 to 255.
+  seq 0 255 > "${natural_sequence}"
+
+  # Find values present in $natural_sequence but missing from $current_sequence.
+  # -1 = suppress lines unique to file 1
+  # -3 = suppress lines that appear in both files
+  # As a result, only report lines that are unique to "${natural_sequence}".
+  comm -1 -3 --nocheck-order \
+    "${current_sequence}" "${natural_sequence}" > "${available}"
+
+  # "Return" the first $available value: the lowest available network number.
+  head -n 1 "${available}"
+
+  # Clean up temporary files.
+  rm -f "${current_sequence}" "${natural_sequence}" "${available}"
+}
+
+
 ###############################################################################
 ## Setup ePoxy subnet if not found in current region.
 ###############################################################################
@@ -61,15 +90,7 @@ EPOXY_SUBNET_IN_REGION=$(gcloud compute networks subnets list \
   "${ARGS[@]}" || : )
 if [[ -z "${EPOXY_SUBNET_IN_REGION}" ]]; then
   # If it doesn't exist, then create it with the first available network.
-  # NOTE: This logic finds the second octet (e.g. 0-255) from existing subnets
-  # (from 10.0.0.0/8), and compares this sequence to a natural sequence 0-255,
-  # and taking the first value found only in the natural squence. The effect is
-  # that we allocate the lowest available /16 network.
-  N=$( comm -1 -3 --nocheck-order \
-    <( gcloud compute networks subnets list \
-        --network "${NETWORK}" --format "value(ipCidrRange)" "${ARGS[@]}" \
-        | cut -d. -f2 | sort -n ) \
-    <( seq 0 255 )  | head -n 1 )
+  N=$( find_lowest_network_number )
   gcloud compute networks subnets create "${EPOXY_SUBNET}" \
     --network "${NETWORK}" \
     --range "10.${N}.0.0/16" \

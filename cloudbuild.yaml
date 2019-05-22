@@ -24,4 +24,4 @@ steps:
    - 'ZONE_mlab_sandbox=us-west2-c'
    - 'ZONE_mlab_staging=us-central1-b'
    - 'ZONE_mlab_oti=us-east1-c'
-
+   - 'NETWORK=mlab-platform-network'

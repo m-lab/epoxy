@@ -58,8 +58,8 @@ function find_lowest_network_number() {
 
   # List current network subnets, and extract the second octet from each.
   gcloud compute networks subnets list \
-        --network "${NETWORK}" --format "value(ipCidrRange)" "${ARGS[@]}" \
-        | cut -d. -f2 | sort -n > "${current_sequence}"
+    --network "${NETWORK}" --format "value(ipCidrRange)" "${ARGS[@]}" \
+    | cut -d. -f2 | sort -n > "${current_sequence}"
 
   # Generate a natural sequence from 0 to 255.
   seq 0 255 > "${natural_sequence}"

@@ -66,6 +66,7 @@ func fmtURL(urlStr string) string {
 // promoting the fake datastore types from storage/datastore_test.go to an
 // internal fake package.
 func runCreate(cmd *cobra.Command, args []string) {
+	fmt.Println("Project:", fProject)
 	// Setup Datastore client.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()

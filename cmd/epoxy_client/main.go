@@ -32,7 +32,7 @@ var (
 		"Report success or errors with the URL in this kernel parameter.")
 	flagDryrun = flag.Bool("dryrun", false,
 		"Request all configs but do not run commands. May change state in the ePoxy server.")
-	flagNoRetry = flag.Bool("no-retry", false, "Do not retry in case of failure")
+	flagRetry = flag.Bool("retry", true, "Retry in case of failure.")
 )
 
 func main() {
@@ -75,7 +75,7 @@ func main() {
 
 		// Stop the retry loop if the -no-retry flag has been provided,
 		// the last execution succeeded or enough time has passed.
-		if *flagNoRetry || runErr == nil || time.Now().After(deadline) {
+		if !*flagRetry || runErr == nil || time.Now().After(deadline) {
 			break
 		}
 
@@ -93,6 +93,8 @@ func reboot() {
 	err := ioutil.WriteFile("/proc/sys/kernel/sysrq", []byte{'1'}, 0644)
 	rtx.Must(err, "Error while writing sysrq")
 
+	// 'b' will immediately reboot the system without syncing or unmounting
+	// your disks.
 	err = ioutil.WriteFile("/proc/sysrq-trigger", []byte{'b'}, 0644)
 	rtx.Must(err, "Error while sending sysrq")
 }

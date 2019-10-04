@@ -12,10 +12,13 @@ import (
 	"io/ioutil"
 	"log"
 	"net/url"
-	"os"
+	"time"
 
 	"github.com/m-lab/epoxy/nextboot"
+	"github.com/m-lab/go/rtx"
 )
+
+const timeout = 6 * time.Hour
 
 var (
 	flagCmdline = flag.String("cmdline", "/proc/cmdline",
@@ -29,14 +32,14 @@ var (
 		"Report success or errors with the URL in this kernel parameter.")
 	flagDryrun = flag.Bool("dryrun", false,
 		"Request all configs but do not run commands. May change state in the ePoxy server.")
+	flagRetry = flag.Bool("retry", true, "Retry in case of failure.")
 )
 
 func main() {
 	var result string
+	var runErr error
 
 	flag.Parse()
-	// TODO: Optionally retry in a loop until success or 6 hours of
-	// failure have occurred. Automatically reboot after 6 hours of failure.
 	c := &nextboot.Config{}
 
 	b, err := ioutil.ReadFile(*flagCmdline)
@@ -46,33 +49,52 @@ func main() {
 	// Read and parse parameters from *flagCmdline.
 	c.ParseCmdline(string(b))
 
-	// Run the config loaded from the action URL.
-	runErr := c.Run(*flagAction, *flagAddKargs, *flagDryrun)
+	deadline := time.Now().Add(timeout)
+
+	for {
+		// Run the config loaded from the action URL.
+		runErr := c.Run(*flagAction, *flagAddKargs, *flagDryrun)
+		if runErr != nil {
+			// Define a successful result.
+			result = "error: " + runErr.Error()
+		} else {
+			result = "success"
+		}
+		log.Println("Result:", result)
+
+		// Report a message to the ePoxy server after running.
+		values := url.Values{}
+		// TODO: report additional host information.
+		// TODO: log the evaluate state of c.V1 -- helpful especially for errors.
+		values.Set("message", result)
+
+		err = c.Report(*flagReport, values, *flagDryrun)
+		if err != nil {
+			log.Print(err)
+		}
+
+		// Stop the retry loop if the -no-retry flag has been provided,
+		// the last execution succeeded or enough time has passed.
+		if !*flagRetry || runErr == nil || time.Now().After(deadline) {
+			break
+		}
+
+		log.Println("Waiting 1 minute before retrying...")
+		time.Sleep(1 * time.Minute)
+	}
+
+	// If the run step failed, reboot the machine
 	if runErr != nil {
-		// Define a successful result.
-		result = "error: " + runErr.Error()
-	} else {
-		result = "success"
+		reboot()
 	}
-	log.Println("Result:", result)
+}
 
-	// Report a message to the ePoxy server after running.
-	values := url.Values{}
-	// TODO: report additional host information.
-	// TODO: log the evaluate state of c.V1 -- helpful especially for errors.
-	values.Set("message", result)
+func reboot() {
+	err := ioutil.WriteFile("/proc/sys/kernel/sysrq", []byte{'1'}, 0644)
+	rtx.Must(err, "Error while writing sysrq")
 
-	err = c.Report(*flagReport, values, *flagDryrun)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Return non-zero exit code if the Run step failed.
-	if runErr != nil {
-		os.Exit(1)
-	}
-
-	// Note: we may reboot without depending on the reboot command using:
-	//   echo 1 > /proc/sys/kernel/sysrq
-	//   echo b > /proc/sysrq-trigger
+	// 'b' will immediately reboot the system without syncing or unmounting
+	// your disks.
+	err = ioutil.WriteFile("/proc/sysrq-trigger", []byte{'b'}, 0644)
+	rtx.Must(err, "Error while sending sysrq")
 }

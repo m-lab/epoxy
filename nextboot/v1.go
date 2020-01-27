@@ -465,7 +465,7 @@ func watchDownload(resp *grab.Response, update time.Duration) {
 			current := resp.BytesComplete()
 			log.Printf("  transferred %v / %v bytes (%.2f%%) at %.2f Mbps",
 				current,
-				resp.Size(),
+				resp.Size,
 				100*resp.Progress(),
 				float64(current-lastCount)/1.0e6/float64(update/time.Second))
 			lastCount = current

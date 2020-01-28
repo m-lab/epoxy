@@ -175,13 +175,11 @@ func (env *Env) GenerateStage1JSON(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// TODO(soltesz): re-enable once PLC updates are completed.
-	/* err = env.requestIsFromHost(req, host)
+	err = env.requestIsFromHost(req, host)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusForbidden)
 		return
 	}
-	*/
 
 	// TODO(soltesz):
 	// * Save information sent in PostForm.
@@ -250,7 +248,6 @@ func (env *Env) GenerateJSONConfig(rw http.ResponseWriter, req *http.Request) {
 // success or failure. In both cases, the session ids are invalidated. In all cases,
 // epoxy_client is expected to report the server's public host key.
 func (env *Env) ReceiveReport(rw http.ResponseWriter, req *http.Request) {
-	// TODO: Verify that the source IP maches the host IP.
 	// TODO: log or save values where appropriate.
 	req.ParseForm()
 
@@ -266,8 +263,6 @@ func (env *Env) ReceiveReport(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusForbidden)
 		return
 	}
-
-	// TODO(soltesz):
 
 	// Verify sessionID matches the host record (i.e. request is authorized).
 	sessionID := mux.Vars(req)["sessionID"]

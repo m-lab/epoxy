@@ -89,7 +89,7 @@ func main() {
 		h := &storage.Host{
 			Name:                 old.Name,
 			IPv4Addr:             old.IPv4Addr,
-			Boot:                 translateSequence(old.Boot, "stage3_coreos"),
+			Boot:                 translateSequence(old.Boot, "stage3_ubuntu"),
 			Update:               translateSequence(old.Update, "stage3_mlxupdate"),
 			UpdateEnabled:        old.UpdateEnabled,
 			Extensions:           old.Extensions,

@@ -81,7 +81,7 @@ func runCreate(cmd *cobra.Command, args []string) {
 		Name:          cfHostname,
 		IPv4Addr:      cfAddress,
 		UpdateEnabled: cfUpdate,
-		Extensions:    []string{cfTokenExtension, cfBMCExtension},
+		Extensions:    cfExtensions,
 		Boot: datastorex.Map{
 			storage.Stage1IPXE: fmtURL(cfBootStage1),
 			storage.Stage1JSON: fmtURL(cfBootStage1JSON),
@@ -118,11 +118,11 @@ func init() {
 	createCmd.MarkFlagRequired("hostname")
 	createCmd.MarkFlagRequired("address")
 
+	// Extensions to enable
+	cfExtensions = createCmd.Flags().StringSlice("extensions", []string{"allocate_k8s_token",
+		"bmc_store_password"}, "List of extensions to enable.")
+
 	// Local flags which will only apply when "create" is called directly.
-	createCmd.Flags().StringVar(&cfTokenExtension, "extension", "allocate_k8s_token",
-		"Generates k8s join tokens for booting nodes.")
-	createCmd.Flags().StringVar(&cfBMCExtension, "extension", "bmc_store_password",
-		"Stores BMC passwords for booting nodes.")
 	createCmd.Flags().BoolVar(&cfUpdate, "update", false,
 		"Set Host.UpdateEnabled to true for an existing Host.")
 	createCmd.Flags().StringVar(&cfBootStage1, "boot-stage1",

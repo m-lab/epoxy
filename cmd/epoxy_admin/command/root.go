@@ -33,7 +33,8 @@ var (
 	// Create flags.
 	cfHostname         string
 	cfAddress          string
-	cfExtension        string
+	cfTokenExtension   string
+	cfBMCExtension     string
 	cfUpdate           bool
 	cfBootStage1       string
 	cfBootStage1JSON   string

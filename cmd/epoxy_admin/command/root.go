@@ -33,7 +33,7 @@ var (
 	// Create flags.
 	cfHostname         string
 	cfAddress          string
-	cfExtension        string
+	cfExtensions       []string
 	cfUpdate           bool
 	cfBootStage1       string
 	cfBootStage1JSON   string
@@ -47,7 +47,7 @@ var (
 	// Update flags.
 	ufHostname         string
 	ufAddress          string
-	ufExtension        string
+	ufExtensions       []string
 	ufUpdate           bool
 	ufBootStage1       string
 	ufBootStage1JSON   string

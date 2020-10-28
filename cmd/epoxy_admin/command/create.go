@@ -81,7 +81,7 @@ func runCreate(cmd *cobra.Command, args []string) {
 		Name:          cfHostname,
 		IPv4Addr:      cfAddress,
 		UpdateEnabled: cfUpdate,
-		Extensions:    []string{cfExtension},
+		Extensions:    cfExtensions,
 		Boot: datastorex.Map{
 			storage.Stage1IPXE: fmtURL(cfBootStage1),
 			storage.Stage1JSON: fmtURL(cfBootStage1JSON),
@@ -119,8 +119,8 @@ func init() {
 	createCmd.MarkFlagRequired("address")
 
 	// Local flags which will only apply when "create" is called directly.
-	createCmd.Flags().StringVar(&cfExtension, "extension", "allocate_k8s_token",
-		"Name of an extension to enable for host.")
+	createCmd.Flags().StringSliceVar(&cfExtensions, "extensions", []string{"allocate_k8s_token",
+		"bmc_store_password"}, "List of extensions to enable.")
 	createCmd.Flags().BoolVar(&cfUpdate, "update", false,
 		"Set Host.UpdateEnabled to true for an existing Host.")
 	createCmd.Flags().StringVar(&cfBootStage1, "boot-stage1",
@@ -136,15 +136,15 @@ func init() {
 		"https://storage.googleapis.com/epoxy-%s/stage3_ubuntu/stage3post.json",
 		"Absolute URL to an action definition to run after running stage3 boot.")
 	createCmd.Flags().StringVar(&cfUpdateStage1, "update-stage1",
-		"https://epoxy-boot-api.%s.measurementlab.net:4430/v1/storage/stage3_mlxupdate/stage1to2.ipxe",
+		"https://epoxy-boot-api.%s.measurementlab.net:4430/v1/storage/stage3_update/stage1to2.ipxe",
 		"Absolute URL to an action definition to run during stage1 to stage2 update.")
 	createCmd.Flags().StringVar(&cfUpdateStage1JSON, "update-stage1-json",
-		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage1to2.json",
+		"https://storage.googleapis.com/epoxy-%s/stage3_update/stage1to2.json",
 		"Absolute URL to an action definition to run during stage1 to stage2 update.")
 	createCmd.Flags().StringVar(&cfUpdateStage2, "update-stage2",
-		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage2to3.json",
+		"https://storage.googleapis.com/epoxy-%s/stage3_update/stage2to3.json",
 		"Absolute URL to an action definition to run during stage2 to stage3 update.")
 	createCmd.Flags().StringVar(&cfUpdateStage3, "update-stage3",
-		"https://storage.googleapis.com/epoxy-%s/stage3_mlxupdate/stage3post.json",
+		"https://storage.googleapis.com/epoxy-%s/stage3_update/stage3post_mlx.json",
 		"Absolute URL to an action definition to run after running stage3 update.")
 }

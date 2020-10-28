@@ -38,7 +38,7 @@ type oldHost struct {
 	Boot                 oldSequence
 	Update               oldSequence
 	UpdateEnabled        bool
-	Extensions           []string
+	Extensions           *[]string
 	CurrentSessionIDs    storage.SessionIDs
 	LastSessionCreation  time.Time
 	LastReport           time.Time

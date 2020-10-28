@@ -118,11 +118,9 @@ func init() {
 	createCmd.MarkFlagRequired("hostname")
 	createCmd.MarkFlagRequired("address")
 
-	// Extensions to enable
-	cfExtensions = createCmd.Flags().StringSlice("extensions", []string{"allocate_k8s_token",
-		"bmc_store_password"}, "List of extensions to enable.")
-
 	// Local flags which will only apply when "create" is called directly.
+	createCmd.Flags().StringSliceVar(&cfExtensions, "extensions", []string{"allocate_k8s_token",
+		"bmc_store_password"}, "List of extensions to enable.")
 	createCmd.Flags().BoolVar(&cfUpdate, "update", false,
 		"Set Host.UpdateEnabled to true for an existing Host.")
 	createCmd.Flags().StringVar(&cfBootStage1, "boot-stage1",

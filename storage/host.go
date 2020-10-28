@@ -95,7 +95,7 @@ type Host struct {
 	UpdateEnabled bool
 
 	// Extensions is an array of extension operation names enabled for this host.
-	Extensions *[]string
+	Extensions []string
 
 	// CurrentSessionIDs are the most recently generated session ids for a booting machine.
 	CurrentSessionIDs SessionIDs

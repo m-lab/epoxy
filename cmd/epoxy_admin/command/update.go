@@ -102,7 +102,7 @@ func runUpdate(cmd *cobra.Command, args []string) {
 func handleUpdate(h *storage.Host) {
 	h.UpdateEnabled = ufUpdate
 
-	if len(*ufExtensions) > 0 {
+	if len(ufExtensions) > 0 {
 		h.Extensions = ufExtensions
 	}
 
@@ -127,11 +127,9 @@ func init() {
 		"Hostname of new record.")
 	updateCmd.MarkFlagRequired("hostname")
 
-	// Extensions to enable
-	ufExtensions = updateCmd.Flags().StringSlice("extensions", []string{},
-		"List of extensions to enable.")
-
 	// Local flags which will only run when "update" is called directly.
+	updateCmd.Flags().StringSliceVar(&ufExtensions, "extensions", []string{},
+		"List of extensions to enable.")
 	updateCmd.Flags().StringVar(&ufAddress, "address", "",
 		"IP address of hostname.")
 	updateCmd.Flags().BoolVar(&ufUpdate, "update", false,

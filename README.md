@@ -1,6 +1,6 @@
 # ePoxy
 
-A system for safe boot management over the Internet, based on iPXE.
+A system for safe boot management over the Internet.
 
 ## Building
 

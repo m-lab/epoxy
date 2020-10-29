@@ -357,11 +357,18 @@ func (env *Env) HandleExtension(rw http.ResponseWriter, req *http.Request) {
 		},
 	}
 
+	// Get the entire query from the original client request.
+	reqQuery := req.URL.RawQuery
+
 	extURL, err := url.Parse(storage.Extensions[operation])
 	if err != nil {
 		http.Error(rw, "Failed to parse extension URL for operation: "+operation, http.StatusInternalServerError)
 		return
 	}
+
+	// Append the entire query from the original request to the ePoxy request to
+	// the extension.
+	extURL.RawQuery = reqQuery
 
 	// TODO: track metrics about extension requests:
 	//  * histogram of request latencies,

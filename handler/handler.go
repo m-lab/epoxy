@@ -354,6 +354,7 @@ func (env *Env) HandleExtension(rw http.ResponseWriter, req *http.Request) {
 			Hostname:    host.Name,
 			IPv4Address: host.IPv4Addr,
 			LastBoot:    host.LastSessionCreation,
+			RawQuery:    req.URL.RawQuery,
 		},
 	}
 

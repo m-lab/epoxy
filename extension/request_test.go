@@ -36,6 +36,10 @@ func TestRequest_Encode(t *testing.T) {
 				Hostname:    "mlab4.lga0t.measurement-lab.org",
 				IPv4Address: "192.168.0.12",
 				LastBoot:    time.Date(2018, 5, 1, 0, 0, 0, 0, time.UTC),
+				// json.Marshal escapes '&' with '\u0026', which is why the
+				// "want" value below has that value instead of an actual
+				// ampersand: https://golang.org/pkg/encoding/json/#Marshal
+				RawQuery: "p=somevalue&z=othervalue",
 			},
 			want: dedent.Dedent(`
         {
@@ -43,7 +47,8 @@ func TestRequest_Encode(t *testing.T) {
                 "hostname": "mlab4.lga0t.measurement-lab.org",
                 "ipv4_address": "192.168.0.12",
                 "ipv6_address": "",
-                "last_boot": "2018-05-01T00:00:00Z"
+                "last_boot": "2018-05-01T00:00:00Z",
+                "raw_query": "p=somevalue\u0026z=othervalue"
             }
         }`),
 		},
@@ -75,13 +80,15 @@ func TestRequest_Decode(t *testing.T) {
                 "hostname": "mlab4.lga0t.measurement-lab.org",
                 "ipv4_address": "192.168.0.12",
                 "ipv6_address": "",
-                "last_boot": "2018-05-01T00:00:00Z"
+                "last_boot": "2018-05-01T00:00:00Z",
+                "raw_query": "p=somevalue\u0026z=othervalue"
             }
         }`))),
 			expected: &V1{
 				Hostname:    "mlab4.lga0t.measurement-lab.org",
 				IPv4Address: "192.168.0.12",
 				LastBoot:    time.Date(2018, 5, 1, 0, 0, 0, 0, time.UTC),
+				RawQuery:    "p=somevalue&z=othervalue",
 			},
 		},
 		{

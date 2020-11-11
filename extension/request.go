@@ -45,6 +45,10 @@ type V1 struct {
 
 	// LastBoot is the most recent time when the booting machine reached stage1.
 	LastBoot time.Time `json:"last_boot"`
+
+	// The raw query string from the request to ePoxy. Extensions may use this
+	// to extract arbitrary data sent by the client.
+	RawQuery string `json:"raw_query"`
 }
 
 // Encode marshals a Request to JSON.

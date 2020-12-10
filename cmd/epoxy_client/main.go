@@ -53,7 +53,7 @@ func main() {
 
 	for {
 		// Run the config loaded from the action URL.
-		runErr := c.Run(*flagAction, *flagAddKargs, *flagDryrun)
+		runErr = c.Run(*flagAction, *flagAddKargs, *flagDryrun)
 		if runErr != nil {
 			// Define a successful result.
 			result = "error: " + runErr.Error()

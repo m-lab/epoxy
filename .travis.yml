@@ -4,6 +4,8 @@
 #
 #  * test and build the Go code
 language: go
+go:
+- 1.15.x
 go_import_path: github.com/m-lab/epoxy
 
 before_install:

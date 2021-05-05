@@ -43,6 +43,7 @@ var (
 	cfUpdateStage1JSON string
 	cfUpdateStage2     string
 	cfUpdateStage3     string
+	cfImagesVersion    string
 
 	// Update flags.
 	ufHostname         string
@@ -57,6 +58,7 @@ var (
 	ufUpdateStage1JSON string
 	ufUpdateStage2     string
 	ufUpdateStage3     string
+	ufImagesVersion    string
 
 	// List flags.
 	lfHostname string

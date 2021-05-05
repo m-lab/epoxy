@@ -31,6 +31,7 @@ set stage1chain_url https://example.com/path/stage1to2/stage1to2.ipxe
 set stage2_url https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-lga0t.mlab-sandbox.measurement-lab.org/01234/stage2
 set stage3_url https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-lga0t.mlab-sandbox.measurement-lab.org/56789/stage3
 set report_url https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-lga0t.mlab-sandbox.measurement-lab.org/86420/report
+set images_version latest
 set ext1_url https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-lga0t.mlab-sandbox.measurement-lab.org/75319/extension/ext1
 set ext2_url https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-lga0t.mlab-sandbox.measurement-lab.org/75319/extension/ext2
 
@@ -46,7 +47,8 @@ func TestFormatStage1IPXEScript(t *testing.T) {
 		Boot: datastorex.Map{
 			storage.Stage1IPXE: "https://example.com/path/stage1to2/stage1to2.ipxe",
 		},
-		Extensions: []string{"ext1", "ext2"},
+		ImagesVersion: "latest",
+		Extensions:    []string{"ext1", "ext2"},
 		CurrentSessionIDs: storage.SessionIDs{
 			Stage2ID:    "01234",
 			Stage3ID:    "56789",

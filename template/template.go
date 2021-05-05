@@ -34,6 +34,7 @@ set stage1chain_url {{ .Stage1ChainURL }}
 set stage2_url {{ .Stage2URL }}
 set stage3_url {{ .Stage3URL }}
 set report_url {{ .ReportURL }}
+set images_version {{ .ImagesVersion }}
 {{- range $key, $value := .Extensions }}
 set {{ $key }}_url {{ $value }}
 {{- end }}
@@ -61,6 +62,7 @@ func FormatStage1IPXEScript(h *storage.Host, serverAddr string) string {
 		serverAddr, h.Name, h.CurrentSessionIDs.Stage3ID)
 	vals["ReportURL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/report",
 		serverAddr, h.Name, h.CurrentSessionIDs.ReportID)
+	vals["ImagesVersion"] = h.ImagesVersion
 
 	// Construct an extension URL for all extensions this host supports.
 	extensionURLs := make(map[string]string, len(h.Extensions))

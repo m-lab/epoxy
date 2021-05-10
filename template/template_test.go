@@ -28,11 +28,12 @@ import (
 const expectedStage1Script = `#!ipxe
 
 set stage1chain_url https://example.com/path/stage1to2/stage1to2.ipxe
-set stage2_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/01234/stage2
-set stage3_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/56789/stage3
-set report_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/86420/report
-set ext1_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/75319/extension/ext1
-set ext2_url https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.iad1t.measurement-lab.org/75319/extension/ext2
+set stage2_url https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-lga0t.mlab-sandbox.measurement-lab.org/01234/stage2
+set stage3_url https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-lga0t.mlab-sandbox.measurement-lab.org/56789/stage3
+set report_url https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-lga0t.mlab-sandbox.measurement-lab.org/86420/report
+set images_version latest
+set ext1_url https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-lga0t.mlab-sandbox.measurement-lab.org/75319/extension/ext1
+set ext2_url https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-lga0t.mlab-sandbox.measurement-lab.org/75319/extension/ext2
 
 chain ${stage1chain_url}
 `
@@ -41,12 +42,13 @@ chain ${stage1chain_url}
 // The result is checked for a valid header and verbatim against the expected content.
 func TestFormatStage1IPXEScript(t *testing.T) {
 	h := &storage.Host{
-		Name:     "mlab1.iad1t.measurement-lab.org",
+		Name:     "mlab1-lga0t.mlab-sandbox.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
 		Boot: datastorex.Map{
 			storage.Stage1IPXE: "https://example.com/path/stage1to2/stage1to2.ipxe",
 		},
-		Extensions: []string{"ext1", "ext2"},
+		ImagesVersion: "latest",
+		Extensions:    []string{"ext1", "ext2"},
 		CurrentSessionIDs: storage.SessionIDs{
 			Stage2ID:    "01234",
 			Stage3ID:    "56789",
@@ -55,7 +57,7 @@ func TestFormatStage1IPXEScript(t *testing.T) {
 		},
 	}
 
-	script := FormatStage1IPXEScript(h, "boot-api-mlab-sandbox.appspot.com")
+	script := FormatStage1IPXEScript(h, "epoxy-boot-api.mlab-sandbox.measurementlab.net")
 	// Verify the correct script header.
 	if !strings.HasPrefix(script, "#!ipxe") {
 		lines := strings.SplitN(script, "\n", 2)
@@ -77,8 +79,9 @@ func TestCreateStage1Action(t *testing.T) {
 		{
 			name: "success",
 			h: &storage.Host{
-				Name:       "mlab1.foo01.measurement-lab.org",
-				Extensions: []string{"allocate_k8s_token"},
+				Name:          "mlab1-foo01.mlab-sandbox.measurement-lab.org",
+				Extensions:    []string{"allocate_k8s_token"},
+				ImagesVersion: "v1.8.7",
 				CurrentSessionIDs: storage.SessionIDs{
 					Stage2ID:    "01234",
 					Stage3ID:    "56789",
@@ -89,10 +92,11 @@ func TestCreateStage1Action(t *testing.T) {
 			want: dedent.Dedent(`
                 {
                     "kargs": {
-                        "epoxy.allocate_k8s_token": "https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.foo01.measurement-lab.org/75319/extension/allocate_k8s_token",
-                        "epoxy.report": "https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.foo01.measurement-lab.org/86420/report",
-                        "epoxy.stage2": "https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.foo01.measurement-lab.org/01234/stage2",
-                        "epoxy.stage3": "https://boot-api-mlab-sandbox.appspot.com/v1/boot/mlab1.foo01.measurement-lab.org/56789/stage3"
+                        "epoxy.allocate_k8s_token": "https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-foo01.mlab-sandbox.measurement-lab.org/75319/extension/allocate_k8s_token",
+                        "epoxy.images_version": "v1.8.7",
+                        "epoxy.report": "https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-foo01.mlab-sandbox.measurement-lab.org/86420/report",
+                        "epoxy.stage2": "https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-foo01.mlab-sandbox.measurement-lab.org/01234/stage2",
+                        "epoxy.stage3": "https://epoxy-boot-api.mlab-sandbox.measurementlab.net/v1/boot/mlab1-foo01.mlab-sandbox.measurement-lab.org/56789/stage3"
                     },
                     "v1": {}
                 }`),
@@ -100,7 +104,7 @@ func TestCreateStage1Action(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateStage1Action(tt.h, "boot-api-mlab-sandbox.appspot.com"); got != tt.want[1:] {
+			if got := CreateStage1Action(tt.h, "epoxy-boot-api.mlab-sandbox.measurementlab.net"); got != tt.want[1:] {
 				t.Errorf("CreateStage1Action() = %v, want %v", got, tt.want)
 			}
 		})
@@ -117,7 +121,7 @@ func TestFormatJSONConfig(t *testing.T) {
 		{
 			name: "success",
 			h: &storage.Host{
-				Name: "mlab1.foo01.measurement-lab.org",
+				Name: "mlab1-foo01.mlab-sandbox.measurement-lab.org",
 				Boot: datastorex.Map{
 					"stage2": "https://example.com/path/stage2/stage2",
 				},

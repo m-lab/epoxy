@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"strings"
 
 	"github.com/m-lab/epoxy/nextboot"
 	"github.com/m-lab/epoxy/storage"
@@ -33,6 +34,7 @@ set stage1chain_url {{ .Stage1ChainURL }}
 set stage2_url {{ .Stage2URL }}
 set stage3_url {{ .Stage3URL }}
 set report_url {{ .ReportURL }}
+set images_version {{ .ImagesVersion }}
 {{- range $key, $value := .Extensions }}
 set {{ $key }}_url {{ $value }}
 {{- end }}
@@ -53,13 +55,14 @@ func FormatStage1IPXEScript(h *storage.Host, serverAddr string) string {
 
 	// Prepare a map for evaluating template.
 	vals := make(map[string]interface{}, 5)
-	vals["Stage1ChainURL"] = s[storage.Stage1IPXE]
+	vals["Stage1ChainURL"] = strings.Replace(s[storage.Stage1IPXE], "{{VERSION}}", h.ImagesVersion, 1)
 	vals["Stage2URL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/stage2",
 		serverAddr, h.Name, h.CurrentSessionIDs.Stage2ID)
 	vals["Stage3URL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/stage3",
 		serverAddr, h.Name, h.CurrentSessionIDs.Stage3ID)
 	vals["ReportURL"] = fmt.Sprintf("https://%s/v1/boot/%s/%s/report",
 		serverAddr, h.Name, h.CurrentSessionIDs.ReportID)
+	vals["ImagesVersion"] = h.ImagesVersion
 
 	// Construct an extension URL for all extensions this host supports.
 	extensionURLs := make(map[string]string, len(h.Extensions))
@@ -89,12 +92,13 @@ func CreateStage1Action(h *storage.Host, serverAddr string) string {
 	c := nextboot.Config{
 		// clients receiving this configuration must support merging local and given Kargs.
 		Kargs: map[string]string{
-			"epoxy.stage2": fmt.Sprintf("https://%s/v1/boot/%s/%s/stage2", serverAddr, h.Name, h.CurrentSessionIDs.Stage2ID),
-			"epoxy.stage3": fmt.Sprintf("https://%s/v1/boot/%s/%s/stage3", serverAddr, h.Name, h.CurrentSessionIDs.Stage3ID),
-			"epoxy.report": fmt.Sprintf("https://%s/v1/boot/%s/%s/report", serverAddr, h.Name, h.CurrentSessionIDs.ReportID),
+			"epoxy.stage2":         fmt.Sprintf("https://%s/v1/boot/%s/%s/stage2", serverAddr, h.Name, h.CurrentSessionIDs.Stage2ID),
+			"epoxy.stage3":         fmt.Sprintf("https://%s/v1/boot/%s/%s/stage3", serverAddr, h.Name, h.CurrentSessionIDs.Stage3ID),
+			"epoxy.report":         fmt.Sprintf("https://%s/v1/boot/%s/%s/report", serverAddr, h.Name, h.CurrentSessionIDs.ReportID),
+			"epoxy.images_version": h.ImagesVersion,
 		},
 		V1: &nextboot.V1{
-			Chain: s["stage1.json"],
+			Chain: strings.Replace(s["stage1.json"], "{{VERSION}}", h.ImagesVersion, 1),
 		},
 	}
 
@@ -114,7 +118,7 @@ func FormatJSONConfig(h *storage.Host, stage string) string {
 	s := h.CurrentSequence()
 	c := nextboot.Config{
 		V1: &nextboot.V1{
-			Chain: s[stage],
+			Chain: strings.Replace(s[stage], "{{VERSION}}", h.ImagesVersion, 1),
 		},
 	}
 	return c.String()

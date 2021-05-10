@@ -89,6 +89,9 @@ type Host struct {
 	Boot datastorex.Map
 	// Update is an alternate boot sequence, typically used to update the system, e.g. reinstall, reflash.
 	Update datastorex.Map
+	// ImagesVersion is the version of epoxy-images to use when booting the
+	// machines in all stages (1-3).
+	ImagesVersion string
 
 	// UpdateEnabled controls whether ePoxy returns the Update sequence (true)
 	// or Boot sequence (false) Chain URLs.

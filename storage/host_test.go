@@ -25,18 +25,19 @@ import (
 
 func TestHostString(t *testing.T) {
 	hostExpected := `{
-    "Name": "mlab1.iad1t.measurement-lab.org",
+    "Name": "mlab1-lga0t.mlab-sandbox.measurement-lab.org",
     "IPv4Addr": "165.117.240.9",
     "Boot": {
-        "stage1.ipxe": "https://storage.googleapis.com/epoxy-boot-server/coreos/stage1to2.ipxe",
-        "stage2": "https://storage.googleapis.com/epoxy-boot-server/coreos/stage2to3.json",
-        "stage3": "https://storage.googleapis.com/epoxy-boot-server/coreos/stage3setup.json"
+        "stage1.ipxe": "https://storage.googleapis.com/epoxy-mlab-sandbox/latest/stage3_ubuntu/stage1to2.ipxe",
+        "stage2": "https://storage.googleapis.com/epoxy-mlab-sandbox/latest/stage3_ubuntu/stage2to3.json",
+        "stage3": "https://storage.googleapis.com/epoxy-mlab-sandbox/latest/stage3_ubuntu/stage3post.json"
     },
     "Update": {
-        "stage1.ipxe": "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
-        "stage2": "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
+        "stage1.ipxe": "https://storage.googleapis.com/epoxy-mlab-sandbox/latest/stage3_update/stage1to2.ipxe",
+        "stage2": "https://storage.googleapis.com/epoxy-mlab-sandbox/latest/stage3_update/stage2to3.json",
         "stage3": ""
     },
+    "ImagesVersion": "latest",
     "UpdateEnabled": false,
     "Extensions": null,
     "CurrentSessionIDs": {
@@ -65,18 +66,19 @@ func TestHostString(t *testing.T) {
 		t.Fatal(err)
 	}
 	h := Host{
-		Name:     "mlab1.iad1t.measurement-lab.org",
+		Name:     "mlab1-lga0t.mlab-sandbox.measurement-lab.org",
 		IPv4Addr: "165.117.240.9",
 		Boot: datastorex.Map{
-			Stage1IPXE: "https://storage.googleapis.com/epoxy-boot-server/coreos/stage1to2.ipxe",
-			Stage2:     "https://storage.googleapis.com/epoxy-boot-server/coreos/stage2to3.json",
-			Stage3:     "https://storage.googleapis.com/epoxy-boot-server/coreos/stage3setup.json",
+			Stage1IPXE: "https://storage.googleapis.com/epoxy-mlab-sandbox/latest/stage3_ubuntu/stage1to2.ipxe",
+			Stage2:     "https://storage.googleapis.com/epoxy-mlab-sandbox/latest/stage3_ubuntu/stage2to3.json",
+			Stage3:     "https://storage.googleapis.com/epoxy-mlab-sandbox/latest/stage3_ubuntu/stage3post.json",
 		},
 		Update: datastorex.Map{
-			Stage1IPXE: "https://storage.googleapis.com/epoxy-boot-server/centos6/install.json",
-			Stage2:     "https://storage.googleapis.com/epoxy-boot-server/centos6/boot.json",
+			Stage1IPXE: "https://storage.googleapis.com/epoxy-mlab-sandbox/latest/stage3_update/stage1to2.ipxe",
+			Stage2:     "https://storage.googleapis.com/epoxy-mlab-sandbox/latest/stage3_update/stage2to3.json",
 			Stage3:     "",
 		},
+		ImagesVersion: "latest",
 		CurrentSessionIDs: SessionIDs{
 			Stage2ID: "01234",
 			Stage3ID: "56789",

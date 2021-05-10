@@ -1,4 +1,4 @@
-FROM golang:1.12 as build
+FROM golang:1.15 as build
 
 # Add the local files to be sure we are building the local source code instead
 # of downloading from GitHub. All other package dependencies will be downloaded

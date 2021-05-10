@@ -117,6 +117,8 @@ func handleUpdate(h *storage.Host) {
 	h.Update[storage.Stage1JSON] = updateURL(fmtURL(ufUpdateStage1JSON), h.Update[storage.Stage1JSON])
 	h.Update[storage.Stage2] = updateURL(fmtURL(ufUpdateStage2), h.Update[storage.Stage2])
 	h.Update[storage.Stage3] = updateURL(fmtURL(ufUpdateStage3), h.Update[storage.Stage3])
+
+	h.ImagesVersion = ufImagesVersion
 }
 
 func init() {
@@ -150,4 +152,6 @@ func init() {
 		"Absolute URL to an action definition to run during stage2 to stage3 update.")
 	updateCmd.Flags().StringVar(&ufUpdateStage3, "update-stage3", "",
 		"Absolute URL to an action definition to run after running stage3 update.")
+	updateCmd.Flags().StringVar(&ufImagesVersion, "images-version", "",
+		"Version of epoxy-images to use in each boot stage.")
 }

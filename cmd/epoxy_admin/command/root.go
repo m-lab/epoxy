@@ -62,6 +62,9 @@ var (
 
 	// List flags.
 	lfHostname string
+
+	// Sync flags.
+	sfSiteinfo string
 )
 
 // rootCmd represents the base command when called without any subcommands

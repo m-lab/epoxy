@@ -16,9 +16,7 @@ package command
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"time"
@@ -27,6 +25,7 @@ import (
 
 	"github.com/m-lab/epoxy/storage"
 	"github.com/m-lab/go/rtx"
+	"github.com/m-lab/go/siteinfo"
 
 	"github.com/spf13/cobra"
 )
@@ -51,17 +50,12 @@ EXAMPLE:
 }
 
 func runSync(cmd *cobra.Command, args []string) {
-	machineProjects := make(map[string]string)
-
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	// Get projects.json from siteinfo.
-	resp, err := http.Get(sfSiteinfo)
-	rtx.Must(err, "Failed to GET siteinfo URL: %s", sfSiteinfo)
-	siteinfo, err := ioutil.ReadAll(resp.Body)
-	rtx.Must(err, "Failed to read resp.Body from siteinfo request")
-	err = json.Unmarshal(siteinfo, &machineProjects)
+	siteinfo := siteinfo.New(fProject, "v2", &http.Client{})
+	projects, err := siteinfo.Projects()
+	rtx.Must(err, "Failed to get siteinfo.Projects()")
 
 	// Setup Datastore client.
 	client, err := datastore.NewClient(ctx, fProject)
@@ -69,23 +63,20 @@ func runSync(cmd *cobra.Command, args []string) {
 
 	// Get all Datastore entities for the given project.
 	ds := storage.NewDatastoreConfig(client)
-	datastoreEntities, err := ds.List()
+	entities, err := ds.List()
 	rtx.Must(err, "Failed to get Datastore entities")
 
-NEXTSITEINFO:
-	for machine, project := range machineProjects {
+	for machine, project := range projects {
 		if project != fProject {
 			continue
 		}
 		hostname := fmt.Sprintf("%s.%s.measurement-lab.org", machine, project)
-		for _, entity := range datastoreEntities {
-			if hostname == entity.Name {
-				continue NEXTSITEINFO
-			}
+		if isHostnameInDatastore(hostname, entities) {
+			continue
 		}
 		cfHostname = hostname
 		v4, err := getV4Address(hostname)
-		rtx.Must(err, "ERROR")
+		rtx.Must(err, "Failed to get IPv4 address for hostname: %s", hostname)
 		cfAddress = v4
 
 		fmt.Printf("Adding host to Datastore: %s\n", hostname)
@@ -93,12 +84,23 @@ NEXTSITEINFO:
 	}
 }
 
+// isHostnameInDatastore looks for a given hostname in a slice of storage.Hosts
+// and returns true if it is found, else false.
+func isHostnameInDatastore(hostname string, entities []*storage.Host) bool {
+	for _, entity := range entities {
+		if hostname == entity.Name {
+			return true
+		}
+	}
+	return false
+}
+
 // getV4Address returns the first IPv4 address it finds for a given hostname.
 func getV4Address(hostname string) (string, error) {
 	var addr string
 	addrs, err := net.LookupIP(hostname)
 	if err != nil {
-		return "", fmt.Errorf("Failed to resolve host: %s", hostname)
+		return "", err
 	}
 
 	for _, ip := range addrs {

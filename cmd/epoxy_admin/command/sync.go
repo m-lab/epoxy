@@ -49,6 +49,8 @@ EXAMPLE:
 	Run: runSync,
 }
 
+var lookupIP = net.LookupIP
+
 func runSync(cmd *cobra.Command, args []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
@@ -98,7 +100,7 @@ func isHostnameInDatastore(hostname string, entities []*storage.Host) bool {
 // getV4Address returns the first IPv4 address it finds for a given hostname.
 func getV4Address(hostname string) (string, error) {
 	var addr string
-	addrs, err := net.LookupIP(hostname)
+	addrs, err := lookupIP(hostname)
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +114,7 @@ func getV4Address(hostname string) (string, error) {
 	}
 
 	if addr == "" {
-		return "", fmt.Errorf("Failed to get IPv4 address for host: %s", hostname)
+		return "", fmt.Errorf("failed to get IPv4 address for host: %s", hostname)
 	}
 	return addr, nil
 }

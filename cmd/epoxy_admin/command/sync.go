@@ -123,6 +123,6 @@ func init() {
 	rootCmd.AddCommand(syncCmd)
 
 	syncCmd.Flags().StringVar(&sfSiteinfo, "siteinfo",
-		"https://siteinfo.mlab-oti.measurementlab.net/v2/sites/projects.json",
+		"https://siteinfo."+fProject+".measurementlab.net/v2/sites/projects.json",
 		"Absolute URL to siteinfo /v2/projects.json file.")
 }

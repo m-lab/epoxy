@@ -17,7 +17,6 @@ package command
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
 	"time"
 
@@ -49,15 +48,13 @@ EXAMPLE:
 	Run: runSync,
 }
 
-var lookupIP = net.LookupIP
-
 func runSync(cmd *cobra.Command, args []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
 	siteinfo := siteinfo.New(fProject, "v2", &http.Client{})
-	projects, err := siteinfo.Projects()
-	rtx.Must(err, "Failed to get siteinfo.Projects()")
+	machines, err := siteinfo.Machines()
+	rtx.Must(err, "Failed to get siteinfo.Machines()")
 
 	// Setup Datastore client.
 	client, err := datastore.NewClient(ctx, fProject)
@@ -68,20 +65,17 @@ func runSync(cmd *cobra.Command, args []string) {
 	entities, err := ds.List()
 	rtx.Must(err, "Failed to get Datastore entities")
 
-	for machine, project := range projects {
-		if project != fProject {
+	for _, machine := range machines {
+		if machine.Project != fProject {
 			continue
 		}
-		hostname := fmt.Sprintf("%s.%s.measurement-lab.org", machine, project)
-		if isHostnameInDatastore(hostname, entities) {
+		if isHostnameInDatastore(machine.Hostname, entities) {
 			continue
 		}
-		cfHostname = hostname
-		v4, err := getV4Address(hostname)
-		rtx.Must(err, "Failed to get IPv4 address for hostname: %s", hostname)
-		cfAddress = v4
+		cfHostname = machine.Hostname
+		cfAddress = machine.IPv4
 
-		fmt.Printf("Adding host to Datastore: %s\n", hostname)
+		fmt.Printf("Adding host to Datastore: %s\n", machine.Hostname)
 		runCreate(cmd, args)
 	}
 }
@@ -95,28 +89,6 @@ func isHostnameInDatastore(hostname string, entities []*storage.Host) bool {
 		}
 	}
 	return false
-}
-
-// getV4Address returns the first IPv4 address it finds for a given hostname.
-func getV4Address(hostname string) (string, error) {
-	var addr string
-	addrs, err := lookupIP(hostname)
-	if err != nil {
-		return "", err
-	}
-
-	for _, ip := range addrs {
-		if ip.To4() == nil {
-			continue
-		}
-		addr = ip.String()
-		break
-	}
-
-	if addr == "" {
-		return "", fmt.Errorf("failed to get IPv4 address for host: %s", hostname)
-	}
-	return addr, nil
 }
 
 func init() {

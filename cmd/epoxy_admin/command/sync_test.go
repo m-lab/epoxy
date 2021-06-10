@@ -15,77 +15,10 @@
 package command
 
 import (
-	"fmt"
-	"net"
 	"testing"
 
 	"github.com/m-lab/epoxy/storage"
 )
-
-func TestSync_getV4Address(t *testing.T) {
-	tests := []struct {
-		name     string
-		ips      []net.IP
-		err      error
-		expected string
-		wanterr  bool
-	}{
-		{
-			name: "one-ipv4",
-			ips: []net.IP{
-				net.ParseIP("2005:170:1100:6d::25"),
-				net.ParseIP("10.0.0.15"),
-			},
-			err:      nil,
-			expected: "10.0.0.15",
-			wanterr:  false,
-		},
-		{
-			name: "two-ipv4",
-			ips: []net.IP{
-				net.ParseIP("192.168.5.96"),
-				net.ParseIP("10.0.0.15"),
-			},
-			err:      nil,
-			expected: "192.168.5.96",
-			wanterr:  false,
-		},
-		{
-			name: "no-ipv4",
-			ips: []net.IP{
-				net.ParseIP("2005:1700:1100:6d::25"),
-				net.ParseIP("2903:f50b:4100::11"),
-				net.ParseIP("2022:2050:0:29::101"),
-			},
-			err:      nil,
-			expected: "",
-			wanterr:  true,
-		},
-		{
-			name:     "no-ips",
-			ips:      []net.IP{},
-			err:      fmt.Errorf("Host not found"),
-			expected: "",
-			wanterr:  true,
-		},
-	}
-
-	for _, tt := range tests {
-		lookupIP = func(host string) ([]net.IP, error) {
-			return tt.ips, tt.err
-		}
-		v4, err := getV4Address("fake-host")
-		if tt.wanterr {
-			if err == nil {
-				t.Errorf("getV4Address(): expected an error, but got: %v", err)
-			}
-		}
-		if v4 != tt.expected {
-			t.Errorf("getV4Address(): expected IPv4 %s, but got %s", tt.expected, v4)
-		}
-	}
-
-}
 
 func TestSync_isHostnameinDatastore(t *testing.T) {
 	entities := []*storage.Host{

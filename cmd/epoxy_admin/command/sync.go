@@ -66,7 +66,12 @@ func runSync(cmd *cobra.Command, args []string) {
 	rtx.Must(err, "Failed to get Datastore entities")
 
 	for _, machine := range machines {
+		// Only operate on machines in the given project.
 		if machine.Project != fProject {
+			continue
+		}
+		// We only create ePoxy Host entities for physical machines.
+		if machine.Type != "physical" {
 			continue
 		}
 		if isHostnameInDatastore(machine.Hostname, entities) {

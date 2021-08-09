@@ -22,6 +22,7 @@ import (
 
 	"cloud.google.com/go/datastore"
 
+	"github.com/google/go-github/github"
 	"github.com/m-lab/epoxy/storage"
 	"github.com/m-lab/go/rtx"
 	"github.com/m-lab/go/siteinfo"
@@ -64,6 +65,18 @@ func runSync(cmd *cobra.Command, args []string) {
 	ds := storage.NewDatastoreConfig(client)
 	entities, err := ds.List()
 	rtx.Must(err, "Failed to get Datastore entities")
+
+	// For mlab-sandbox and mlab-staging, cfImagesVersion should always be
+	// "latest", but for mlab-oti (production) it should be the latest release
+	// of the epoxy-images repository.
+	if fProject != "mlab-oti" {
+		cfImagesVersion = "latest"
+	} else {
+		ghClient := github.NewClient(nil)
+		rel, _, err := ghClient.Repositories.GetLatestRelease(ctx, "m-lab", "epoxy-images")
+		rtx.Must(err, "Failed to get latest release for repo: epoxy-images")
+		cfImagesVersion = *rel.TagName
+	}
 
 	for _, machine := range machines {
 		// Only operate on machines in the given project.

@@ -118,7 +118,9 @@ func handleUpdate(h *storage.Host) {
 	h.Update[storage.Stage2] = updateURL(fmtURL(ufUpdateStage2), h.Update[storage.Stage2])
 	h.Update[storage.Stage3] = updateURL(fmtURL(ufUpdateStage3), h.Update[storage.Stage3])
 
-	h.ImagesVersion = ufImagesVersion
+	if ufImagesVersion != "" {
+		h.ImagesVersion = ufImagesVersion
+	}
 }
 
 func init() {

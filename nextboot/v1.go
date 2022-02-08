@@ -19,7 +19,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/cavaliercoder/grab"
+	grab "github.com/cavaliergopher/grab/v3"
 	"github.com/google/shlex"
 )
 

@@ -165,7 +165,7 @@ mkdir "${CERTDIR}"
 until docker run --rm --tty --volume /var/lib/toolbox:/tmp/go/bin \
   --env "GOPATH=/tmp/go" \
   golang:1.18 /bin/bash -c \
-   "go install -u github.com/googlecloudplatform/gcsfuse@v0.41.1 &&
+   "go install github.com/googlecloudplatform/gcsfuse@v0.41.1 &&
     apt-get update --quiet=2 &&
     apt-get install --yes fuse &&
     cp /bin/fusermount /tmp/go/bin" ; do

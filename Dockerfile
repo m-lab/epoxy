@@ -1,14 +1,15 @@
-FROM golang:1.15 as build
+FROM golang:1.18 as build
 
 # Add the local files to be sure we are building the local source code instead
 # of downloading from GitHub. All other package dependencies will be downloaded
 # from HEAD.
 ADD . /go/src/github.com/m-lab/epoxy
 ENV CGO_ENABLED 0
+ENV GO111MODULE=off
 WORKDIR /go/src/github.com/m-lab/epoxy
-RUN go get -t -v ./...
+RUN go get -d -t -v ./...
 RUN go test -v ./...
-RUN go get \
+RUN go install \
       -v \
       -ldflags "-X github.com/m-lab/go/prometheusx.GitShortCommit=$(git log -1 --format=%h)" \
       ./...

@@ -5,12 +5,12 @@
 #  * test and build the Go code
 language: go
 go:
-- 1.15.x
+- 1.18.x
 go_import_path: github.com/m-lab/epoxy
 
 before_install:
-- go get github.com/mattn/goveralls
-- go get github.com/wadey/gocovmerge
+- go install github.com/mattn/goveralls@latest
+- go install github.com/wadey/gocovmerge@latest
 
 script:
 # Run "unit tests" with coverage.

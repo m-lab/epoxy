@@ -5,7 +5,6 @@ FROM golang:1.18 as build
 # from HEAD.
 ADD . /go/src/github.com/m-lab/epoxy
 ENV CGO_ENABLED 0
-ENV GO111MODULE=off
 WORKDIR /go/src/github.com/m-lab/epoxy
 RUN go get -d -t -v ./...
 RUN go test -v ./...

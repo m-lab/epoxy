@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/kr/pretty"
-	"github.com/renstrom/dedent"
+	"github.com/lithammer/dedent"
 )
 
 func init() {

@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/renstrom/dedent"
+	"github.com/lithammer/dedent"
 )
 
 func TestRequest_Encode(t *testing.T) {

@@ -83,10 +83,6 @@ func runSync(cmd *cobra.Command, args []string) {
 		if machine.Project != fProject {
 			continue
 		}
-		// We only create ePoxy Host entities for physical machines.
-		if machine.Type != "physical" {
-			continue
-		}
 		if isHostnameInDatastore(machine.Hostname, entities) {
 			continue
 		}

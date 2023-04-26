@@ -37,8 +37,7 @@ var (
 	// Extensions is a static map of operation names to extension URLS for testing.
 	// TODO: save/retrieve extension configuration in/from datastore.
 	Extensions = map[string]string{
-		"allocate_k8s_token":    "http://epoxy-extension-server.%s.measurementlab.net:8800/v1/allocate_k8s_token",
-		"allocate_k8s_token_v2": "http://epoxy-extension-server.%s.measurementlab.net:8800/v2/allocate_k8s_token",
+		"allocate_k8s_token":    "http://epoxy-extension-server.%s.measurementlab.net:8800/v2/allocate_k8s_token",
 		"bmc_store_password":    "http://epoxy-extension-server.%s.measurementlab.net:8800/v1/bmc_store_password",
 		"test_op":               "http://soltesz-epoxy-testing-instance-1.c.%s.internal:8001/operation",
 	}

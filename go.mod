@@ -1,6 +1,6 @@
 module github.com/m-lab/epoxy
 
-go 1.18
+go 1.20
 
 require (
 	cloud.google.com/go/datastore v1.10.0

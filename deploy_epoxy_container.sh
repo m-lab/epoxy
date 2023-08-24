@@ -164,7 +164,7 @@ mkdir "${CERTDIR}"
 # Retry because docker fails to contact gcr.io sometimes.
 until docker run --rm --tty --volume /var/lib/toolbox:/tmp/go/bin \
   --env "GOPATH=/tmp/go" \
-  golang:1.18 /bin/bash -c \
+  golang:1.20 /bin/bash -c \
    "go install github.com/googlecloudplatform/gcsfuse@v0.41.1 &&
     apt-get update --quiet=2 &&
     apt-get install --yes fuse &&

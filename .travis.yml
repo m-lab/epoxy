@@ -5,7 +5,7 @@
 #  * test and build the Go code
 language: go
 go:
-- 1.18.x
+- 1.20
 go_import_path: github.com/m-lab/epoxy
 
 before_install:

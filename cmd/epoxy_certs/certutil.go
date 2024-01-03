@@ -1,4 +1,4 @@
-// Package certutil implements utility methods for managing x509 certificates and RSA keys.
+// Package main implements utility methods for managing x509 certificates and RSA keys.
 package main
 
 import (

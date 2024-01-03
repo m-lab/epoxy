@@ -24,6 +24,10 @@ $ echo \
 
 Create new server certificates with 5 year expiration plus 30 extra days.
 
+> NOTE: you must have the CA certificate and private key files present to
+generate a new valid server certificate. The example below assumes default
+names, but you may specify alternate filenames with flags if needed.
+
 ```sh
 $ epoxy_certs server -hostname epoxy-boot-api.mlab-sandbox.measurementlab.net -duration $(( 5*8761 + 24*30 ))h
 $ openssl x509 -noout -text -in ./server-cert.pem

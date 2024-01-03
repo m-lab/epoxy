@@ -50,5 +50,16 @@ Ideally, `epoxy_certs` would automatically append this file, but currently it do
 So, before deploying the server-cert.pem to a running server, append the ca-cert.pem.
 
 ```sh
-cat ca-cert.pem >> server-cert.pem
+cat server-cert.pem ca-cert.pem > server-certs.pem
 ```
+
+## M-Lab Deployments
+
+Upload the new certificates file to the private epoxy bucket:
+
+```sh
+gsutil cp server-key.pem server-certs.pem gs://epoxy-${PROJECT}-private/
+```
+
+Since these files are available to the epoxy server using GCSFuse, simply
+restart the epoxy server to load the new key.

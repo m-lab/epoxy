@@ -62,4 +62,4 @@ gsutil cp server-key.pem server-certs.pem gs://epoxy-${PROJECT}-private/
 ```
 
 Since these files are available to the epoxy server using GCSFuse, simply
-restart the epoxy server to load the new key.
+restart or redeploy the epoxy server to load the new key.

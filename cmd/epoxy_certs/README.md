@@ -35,3 +35,16 @@ Certificate:
             Not After : Feb  5 03:09:15 2029 GMT
         ...
 ```
+
+## Updating Server Certificates
+
+The iPXE client requires that both the server and CA certificate both be present
+in the server certificate file.
+
+Ideally, `epoxy_certs` would automatically append this file, but currently it does not.
+
+So, before deploying the server-cert.pem to a running server, append the ca-cert.pem.
+
+```sh
+cat ca-cert.pem >> server-cert.pem
+```

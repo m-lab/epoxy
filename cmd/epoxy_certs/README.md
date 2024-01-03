@@ -38,7 +38,7 @@ Certificate:
 
 ## Updating Server Certificates
 
-The iPXE client requires that both the server and CA certificate both be present
+The iPXE client requires that the server and CA certificate both be present
 in the server certificate file.
 
 Ideally, `epoxy_certs` would automatically append this file, but currently it does not.

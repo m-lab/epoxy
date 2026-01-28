@@ -230,7 +230,7 @@ gcloud compute instances create "${UPDATED_INSTANCE}" \
   --project "${PROJECT}" \
   --zone "${ZONE}" \
   --tags allow-epoxy-ports \
-  --scopes default,datastore,storage-full \
+  --scopes cloud-platform \
   --metadata-from-file "startup-script=startup.sh" \
   --network-interface network=mlab-platform-network,subnet=epoxy \
 

@@ -197,19 +197,19 @@ mkdir ${CERTDIR}/bucket
 export PATH=\$PATH:/var/lib/toolbox
 /var/lib/toolbox/gcsfuse --implicit-dirs -o rw,allow_other \
   epoxy-${PROJECT}-private ${CERTDIR}/bucket
-EOF
 
-cat <<EOF >config.env
+cat <<EOF3 >config.env
 IPXE_CERT_FILE=/certs/server-certs.pem
 IPXE_KEY_FILE=/certs/server-key.pem
 PUBLIC_HOSTNAME=epoxy-boot-api.${PROJECT}.measurementlab.net
 STORAGE_PREFIX_URL=https://storage.googleapis.com/epoxy-${PROJECT}
 GCLOUD_PROJECT=${PROJECT}
+EOF3
 
-# docker run --env-file ./config.env --volume ${CERTDIR}/bucket:/certs \
+docker run --env-file ./config.env --volume ${CERTDIR}/bucket:/certs \
   --restart always --name "${UPDATED_INSTANCE}" "${CONTAINER}"
-
 EOF
+
 
 CURRENT_FIREWALL=$(
   gcloud compute firewall-rules list \

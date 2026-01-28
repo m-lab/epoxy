@@ -184,6 +184,10 @@ IPXE_KEY_FILE=/certs/server-key.pem
 PUBLIC_HOSTNAME=epoxy-boot-api.${PROJECT}.measurementlab.net
 STORAGE_PREFIX_URL=https://storage.googleapis.com/epoxy-${PROJECT}
 GCLOUD_PROJECT=${PROJECT}
+
+# docker run --env-file ./config.env --volume ${CERTDIR}/bucket:/certs \
+  --restart always --name "${UPDATED_INSTANCE}" "${CONTAINER}"
+
 EOF
 
 CURRENT_FIREWALL=$(
@@ -201,16 +205,13 @@ if [[ -z "${CURRENT_FIREWALL}" ]]; then
 fi
 
 # Create new VM with ephemeral public IP.
-gcloud compute instances create-with-container "${UPDATED_INSTANCE}" \
+gcloud compute instances create "${UPDATED_INSTANCE}" \
   --project "${PROJECT}" \
   --zone "${ZONE}" \
   --tags allow-epoxy-ports \
   --scopes default,datastore,storage-full \
   --metadata-from-file "startup-script=startup.sh" \
   --network-interface network=mlab-platform-network,subnet=epoxy \
-  --container-image "${CONTAINER}" \
-  --container-mount-host-path host-path=${CERTDIR}/bucket,mount-path=/certs \
-  --container-env-file config.env
 
 sleep 20
 TEMP_IP=$(

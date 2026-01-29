@@ -206,6 +206,8 @@ STORAGE_PREFIX_URL=https://storage.googleapis.com/epoxy-${PROJECT}
 GCLOUD_PROJECT=${PROJECT}
 EOF3
 
+gcloud auth configure-docker gcr.io --quiet
+
 docker run --env-file ./config.env --volume ${CERTDIR}/bucket:/certs \
   --restart always --name "${UPDATED_INSTANCE}" "${CONTAINER}"
 EOF

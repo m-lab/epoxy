@@ -209,7 +209,8 @@ EOF3
 gcloud auth configure-docker gcr.io --quiet
 
 docker run --env-file ./config.env --volume ${CERTDIR}/bucket:/certs \
-  --restart always --name "${UPDATED_INSTANCE}" "${CONTAINER}"
+  --restart always --name "${UPDATED_INSTANCE}" --network host \
+  "${CONTAINER}"
 EOF
 
 

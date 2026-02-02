@@ -210,7 +210,7 @@ gcloud auth configure-docker gcr.io --quiet
 
 docker run --env-file ./config.env --volume ${CERTDIR}/bucket:/certs \
   --restart always --name "${UPDATED_INSTANCE}" --network host \
-  "${CONTAINER}"
+  --detach "${CONTAINER}"
 EOF
 
 
@@ -235,7 +235,7 @@ gcloud compute instances create "${UPDATED_INSTANCE}" \
   --tags allow-epoxy-ports \
   --scopes cloud-platform \
   --metadata-from-file "startup-script=startup.sh" \
-  --network-interface network=mlab-platform-network,subnet=epoxy \
+  --network-interface network=mlab-platform-network,subnet=epoxy
 
 sleep 20
 TEMP_IP=$(

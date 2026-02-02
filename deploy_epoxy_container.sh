@@ -174,7 +174,7 @@ chmod a+r /etc/apt/keyrings/docker.asc
 tee /etc/apt/sources.list.d/docker.sources <<EOF2
 Types: deb
 URIs: https://download.docker.com/linux/debian
-Suites: $(. /etc/os-release && echo "\$VERSION_CODENAME}")
+Suites: \$(. /etc/os-release && echo "\$VERSION_CODENAME")
 Components: stable
 Signed-By: /etc/apt/keyrings/docker.asc
 EOF2

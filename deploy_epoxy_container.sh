@@ -235,7 +235,9 @@ gcloud compute instances create "${UPDATED_INSTANCE}" \
   --tags allow-epoxy-ports \
   --scopes cloud-platform \
   --metadata-from-file "startup-script=startup.sh" \
-  --network-interface network=mlab-platform-network,subnet=epoxy
+  --network-interface network=mlab-platform-network,subnet=epoxy \
+  --image-family debian-13 \
+  --image-project debian-cloud
 
 sleep 20
 TEMP_IP=$(

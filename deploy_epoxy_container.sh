@@ -160,6 +160,27 @@ cat <<EOF >startup.sh
 #!/bin/bash
 set -x
 mkdir "${CERTDIR}"
+
+#
+# Install Docker
+#
+# Add Docker's official GPG key:
+apt update
+apt install --yes ca-certificates curl
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+# Add the repository to Apt sources:
+tee /etc/apt/sources.list.d/docker.sources <<EOF2
+Types: deb
+URIs: https://download.docker.com/linux/debian
+Suites: \$(. /etc/os-release && echo "\$VERSION_CODENAME")
+Components: stable
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF2
+sudo apt update
+sudo apt install --yes docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
 # Build the GCS fuse user space tools.
 # Retry because docker fails to contact gcr.io sometimes.
 until docker run --rm --tty --volume /var/lib/toolbox:/tmp/go/bin \
@@ -176,15 +197,22 @@ mkdir ${CERTDIR}/bucket
 export PATH=\$PATH:/var/lib/toolbox
 /var/lib/toolbox/gcsfuse --implicit-dirs -o rw,allow_other \
   epoxy-${PROJECT}-private ${CERTDIR}/bucket
-EOF
 
-cat <<EOF >config.env
+cat <<EOF3 >config.env
 IPXE_CERT_FILE=/certs/server-certs.pem
 IPXE_KEY_FILE=/certs/server-key.pem
 PUBLIC_HOSTNAME=epoxy-boot-api.${PROJECT}.measurementlab.net
 STORAGE_PREFIX_URL=https://storage.googleapis.com/epoxy-${PROJECT}
 GCLOUD_PROJECT=${PROJECT}
+EOF3
+
+gcloud auth configure-docker gcr.io --quiet
+
+docker run --env-file ./config.env --volume ${CERTDIR}/bucket:/certs \
+  --restart always --name "${UPDATED_INSTANCE}" --network host \
+  --detach "${CONTAINER}"
 EOF
+
 
 CURRENT_FIREWALL=$(
   gcloud compute firewall-rules list \
@@ -201,16 +229,15 @@ if [[ -z "${CURRENT_FIREWALL}" ]]; then
 fi
 
 # Create new VM with ephemeral public IP.
-gcloud compute instances create-with-container "${UPDATED_INSTANCE}" \
+gcloud compute instances create "${UPDATED_INSTANCE}" \
   --project "${PROJECT}" \
   --zone "${ZONE}" \
   --tags allow-epoxy-ports \
-  --scopes default,datastore,storage-full \
+  --scopes cloud-platform \
   --metadata-from-file "startup-script=startup.sh" \
   --network-interface network=mlab-platform-network,subnet=epoxy \
-  --container-image "${CONTAINER}" \
-  --container-mount-host-path host-path=${CERTDIR}/bucket,mount-path=/certs \
-  --container-env-file config.env
+  --image-family debian-13 \
+  --image-project debian-cloud
 
 sleep 20
 TEMP_IP=$(
